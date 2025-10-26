@@ -13,25 +13,25 @@
         <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
     </padding>
 
-    <Label text="Emby Helper Login">
+    <Label text="%login.title">
         <font>
             <Font name="System Bold" size="20.0" />
         </font>
     </Label>
 
-    <Label text="Địa chỉ Server (vd: http://localhost:8096/emby)" styleClass="label" />
+    <Label text="%login.label.server" styleClass="label" />
     <TextField fx:id="txtServerAddress" promptText="http://localhost:8096/emby" />
 
-    <Label text="API Key" styleClass="label" />
+    <Label text="%login.label.apiKey" styleClass="label" />
     <TextField fx:id="txtApiKey" promptText="API Key của bạn" />
 
-    <Label text="Username" styleClass="label" />
+    <Label text="%login.label.username" styleClass="label" />
     <TextField fx:id="txtUsername" text="admin" />
 
-    <Label text="Password" styleClass="label" />
+    <Label text="%login.label.password" styleClass="label" />
     <PasswordField fx:id="txtPassword" />
 
-    <Button fx:id="btnConnect" onAction="#onConnectButtonClick" text="Kết nối" />
+    <Button fx:id="btnConnect" onAction="#onConnectButtonClick" text="%login.button.connect" />
 
-    <Label fx:id="lblStatus" text="Trạng thái: Chưa kết nối" textFill="#e0e0e0" />
+    <Label fx:id="lblStatus" text="%login.status.notConnected" textFill="#e0e0e0" />
 </VBox>

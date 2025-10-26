@@ -2,7 +2,6 @@ package vinhtt.emby.sdkv4;
 
 import embyclient.ApiClient;
 import embyclient.Configuration;
-import embyclient.api.SystemServiceApi;
 import embyclient.api.UserServiceApi;
 import embyclient.auth.ApiKeyAuth;
 import javafx.application.Application;
@@ -12,15 +11,35 @@ import javafx.scene.Scene;
 import javafx.stage.Stage;
 
 import java.io.IOException;
+import java.util.Locale; // <-- THÊM IMPORT
+import java.util.ResourceBundle; // <-- THÊM IMPORT
 
 public class HelloApplication extends Application {
 
     private ConfigService configService = new ConfigService();
     private Stage primaryStage;
+    private ResourceBundle bundle; // <-- THÊM BIẾN NÀY
 
     @Override
     public void start(Stage stage) throws IOException {
         this.primaryStage = stage;
+
+        // --- TẢI RESOURCE BUNDLE ---
+        // Sử dụng Locale mặc định của hệ thống.
+        // Bạn có thể ép ngôn ngữ bằng cách bỏ comment các dòng dưới:
+        // Locale.setDefault(Locale.of("vi", "VN")); // Ép tiếng Việt
+        // Locale.setDefault(Locale.of("en", "US")); // Ép tiếng Anh
+
+        Locale currentLocale = Locale.getDefault();
+        try {
+            // Tên "vinhtt.emby.sdkv4.messages" trỏ đến /resources/vinhtt/emby/sdkv4/messages.properties
+            this.bundle = ResourceBundle.getBundle("vinhtt.emby.sdkv4.messages", currentLocale);
+        } catch (Exception e) {
+            System.err.println("Không thể tải ResourceBundle, kiểm tra lại đường dẫn và tên file: " + e.getMessage());
+            // Tải bundle mặc định (tiếng Anh) nếu có lỗi
+            this.bundle = ResourceBundle.getBundle("vinhtt.emby.sdkv4.messages", Locale.ENGLISH);
+        }
+        // --- KẾT THÚC TẢI ---
 
         String savedToken = configService.getAccessToken();
         String savedUserId = configService.getUserId();
@@ -40,7 +59,7 @@ public class HelloApplication extends Application {
         }
     }
 
-    // *** THAY THẾ HÀM NÀY ***
+    // *** (validateSavedSession không thay đổi) ***
     private void validateSavedSession(String serverUrl, String apiKey, String accessToken, String userId) {
         new Thread(() -> {
             boolean sessionValid = false;
@@ -50,38 +69,32 @@ public class HelloApplication extends Application {
                 tempApiClient.setBasePath(serverUrl);
                 ApiKeyAuth apikeyauth = (ApiKeyAuth) tempApiClient.getAuthentication("apikeyauth");
                 apikeyauth.setApiKey(apiKey);
-                // *** QUAN TRỌNG: Đặt Access Token trực tiếp vào client TẠM THỜI này ***
                 tempApiClient.setAccessToken(accessToken);
 
-                // 2. Gọi API UserService để lấy thông tin user bằng ID đã lưu
-                //    Sử dụng client TẠM THỜI đã cấu hình token
+                // 2. Gọi API UserService
                 UserServiceApi userServiceApi = new UserServiceApi(tempApiClient);
                 System.out.println("Đang thử lấy thông tin User ID: " + userId + " để xác thực session...");
                 embyclient.model.UserDto userDto = userServiceApi.getUsersById(userId);
 
-                // 3. Nếu gọi API thành công và lấy được thông tin user -> Session hợp lệ
+                // 3. Nếu gọi API thành công -> Session hợp lệ
                 if (userDto != null) {
                     System.out.println("Xác thực thành công cho user: " + userDto.getName());
                     sessionValid = true;
                 } else {
-                    // Trường hợp hiếm: API không lỗi nhưng không trả về user Dto
                     System.err.println("Xác thực session thất bại: API thành công nhưng không lấy được UserDto.");
-                    configService.clearSession(); // Xóa session không hợp lệ
+                    configService.clearSession();
                 }
 
             } catch (embyclient.ApiException apiEx) {
-                // Lỗi API (401, 403, 404, 0...) -> Session không hợp lệ
                 System.err.println("Xác thực session thất bại (API Error " + apiEx.getCode() + "): " + apiEx.getMessage());
-                // In thêm body nếu có để debug
                 if (apiEx.getResponseBody() != null) {
                     System.err.println("Response Body: " + apiEx.getResponseBody());
                 }
-                configService.clearSession(); // Xóa session không hợp lệ
+                configService.clearSession();
             } catch (Exception e) {
-                // Lỗi khác (mạng, etc.) -> Session không hợp lệ
                 System.err.println("Xác thực session thất bại (Lỗi khác): " + e.getMessage());
-                e.printStackTrace(); // In stack trace để debug
-                configService.clearSession(); // Xóa session không hợp lệ
+                e.printStackTrace();
+                configService.clearSession();
             }
 
             // --- Cập nhật UI ---
@@ -89,19 +102,18 @@ public class HelloApplication extends Application {
             Platform.runLater(() -> {
                 if (finalSessionValid) {
                     System.out.println("Session hợp lệ. Hiển thị màn hình chính.");
-                    // Cấu hình ApiClient CHÍNH THỨC MẶC ĐỊNH cho toàn ứng dụng
-                    // (Lưu ý: Không dùng lại tempApiClient)
+                    // Cấu hình ApiClient CHÍNH THỨC MẶC ĐỊNH
                     ApiClient mainApiClient = new ApiClient();
                     mainApiClient.setBasePath(serverUrl);
                     ApiKeyAuth mainApiKeyAuth = (ApiKeyAuth) mainApiClient.getAuthentication("apikeyauth");
                     mainApiKeyAuth.setApiKey(apiKey);
-                    mainApiClient.setAccessToken(accessToken); // Đặt token cho client chính
-                    Configuration.setDefaultApiClient(mainApiClient); // Đặt làm client mặc định
+                    mainApiClient.setAccessToken(accessToken);
+                    Configuration.setDefaultApiClient(mainApiClient);
 
                     openMainWindow(userId); // Mở thẳng màn hình chính
                 } else {
                     System.out.println("Session không hợp lệ hoặc có lỗi. Hiển thị màn hình Login.");
-                    showLoginView(); // Nếu session không hợp lệ, quay lại Login
+                    showLoginView(); // Quay lại Login
                 }
             });
         }).start();
@@ -111,13 +123,14 @@ public class HelloApplication extends Application {
     private void showLoginView() {
         try {
             FXMLLoader fxmlLoader = new FXMLLoader(HelloApplication.class.getResource("login-view.fxml"));
+            fxmlLoader.setResources(this.bundle); // <-- THÊM DÒNG NÀY
+
             double width = configService.getLoginWindowWidth();
             double height = configService.getLoginWindowHeight();
             Scene scene = new Scene(fxmlLoader.load(), width, height);
 
-            // *** TRUYỀN HelloApplication VÀO LoginController ***
             LoginController loginController = fxmlLoader.getController();
-            loginController.setApp(this); // Thêm dòng này
+            loginController.setApp(this);
 
             applyStylesAndShow(scene, "Emby Helper - Đăng nhập", primaryStage);
 
@@ -130,17 +143,18 @@ public class HelloApplication extends Application {
         }
     }
 
-    // *** THAY ĐỔI private thành public Ở ĐÂY ***
-    public void openMainWindow(String userId) { // <-- Sửa thành public
+    public void openMainWindow(String userId) {
         try {
             FXMLLoader fxmlLoader = new FXMLLoader(HelloApplication.class.getResource("main-view.fxml"));
+            fxmlLoader.setResources(this.bundle); // <-- THÊM DÒNG NÀY
+
             double width = configService.getMainWindowWidth();
             double height = configService.getMainWindowHeight();
             Scene scene = new Scene(fxmlLoader.load(), width, height);
 
             MainController mainController = fxmlLoader.getController();
             mainController.setUserId(userId);
-            mainController.setApp(this); // Truyền app cho logout
+            mainController.setApp(this);
 
             applyStylesAndShow(scene, "Emby Helper Dashboard", primaryStage);
 
@@ -157,6 +171,7 @@ public class HelloApplication extends Application {
         }
     }
 
+    // ... (applyStylesAndShow và handleLogout không thay đổi) ...
     private void applyStylesAndShow(Scene scene, String title, Stage stage) {
         String css = HelloApplication.class.getResource("style.css").toExternalForm();
         scene.getStylesheets().add(css);
@@ -173,11 +188,10 @@ public class HelloApplication extends Application {
         Platform.runLater(() -> {
             try {
                 Stage loginStage = new Stage();
-                start(loginStage);
+                start(loginStage); // Gọi lại start để bắt đầu lại logic
             } catch (IOException e) {
                 e.printStackTrace();
             }
         });
     }
-
 }

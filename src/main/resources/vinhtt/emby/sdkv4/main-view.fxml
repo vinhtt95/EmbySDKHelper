@@ -8,10 +8,9 @@
     <children>
         <MenuBar fx:id="menuBar">
             <menus>
-                <Menu mnemonicParsing="false" text="Tệp">
-                    <items>
-                        <MenuItem fx:id="logoutMenuItem" mnemonicParsing="false" text="Đăng xuất" />
-                    </items>
+                <Menu mnemonicParsing="false" text="Tệp"> <items>
+                    <MenuItem fx:id="logoutMenuItem" mnemonicParsing="false" text="%menu.file.logout" />
+                </items>
                 </Menu>
             </menus>
         </MenuBar>
@@ -23,56 +22,54 @@
             <children>
                 <HBox alignment="CENTER_LEFT" spacing="10.0">
                     <children>
-                        <Label text="Chọn loại Metadata:" style="-fx-font-weight: bold;"/>
+                        <Label text="%label.selectType" style="-fx-font-weight: bold;"/>
                         <ComboBox fx:id="typeComboBox" prefWidth="150.0" />
                     </children>
                 </HBox>
 
-                <TitledPane fx:id="copyPane" animated="false" text="Copy Hàng loạt">
+                <TitledPane fx:id="copyPane" animated="false" text="%pane.copy.title">
                     <content>
                         <VBox spacing="8.0">
-                            <Label text="ID Item Mẫu (Copy từ đây):" />
-                            <TextField fx:id="txtCopyFromItemID" promptText="Nhập ID item mẫu..." />
+                            <Label text="%label.copyFromId" />
+                            <TextField fx:id="txtCopyFromItemID" promptText="%prompt.copyFromId" />
 
-                            <Label text="ID Thư mục Đích (Paste vào đây):" />
-                            <TextField fx:id="txtCopyToParentID" promptText="Nhập ID thư mục đích..." />
+                            <Label text="%label.copyToParent" />
+                            <TextField fx:id="txtCopyToParentID" promptText="%prompt.copyToParent" />
 
-                            <Button fx:id="btnRunCopy" onAction="#btnRunCopyClick" text="Thực thi Copy" />
+                            <Button fx:id="btnRunCopy" onAction="#btnRunCopyClick" text="%button.executeCopy" />
                         </VBox>
                     </content>
                 </TitledPane>
-                <TitledPane fx:id="clearParentPane" animated="false" text="Xóa Hàng loạt theo Thư mục">
+                <TitledPane fx:id="clearParentPane" animated="false" text="%pane.clearParent.title">
                     <content>
-
                         <VBox spacing="5.0">
-                            <Label fx:id="clearParentLabel" text="ID Thư mục Đích (Xóa mọi [loại] trong thư mục này):" />
-                            <TextField fx:id="txtClearByParentID" promptText="Nhập ID thư mục..." />
+                            <Label fx:id="clearParentLabel" text="ID Thư mục Đích (Xóa...):" />
+                            <TextField fx:id="txtClearByParentID" promptText="%prompt.clearParentId" />
 
                             <Button fx:id="btnRunClearParent" onAction="#btnRunClearParentClick" text="Thực thi Xóa (Theo Thư mục)" />
                         </VBox>
                     </content>
                 </TitledPane>
 
-                <TitledPane fx:id="exportJsonPane" animated="false" text="Export JSON Hàng loạt">
+                <TitledPane fx:id="exportJsonPane" animated="false" text="%pane.exportJson.title">
                     <content>
                         <VBox spacing="8.0">
-                            <Label text="ID Thư mục Cha (Parent ID):" />
-                            <TextField fx:id="txtExportJsonParentID" promptText="Nhập ID thư mục cha..." />
-                            <Button fx:id="btnRunExportJson" onAction="#btnRunExportJsonClick" text="Chọn nơi lưu &amp; Bắt đầu Export" />
+                            <Label text="%label.exportJsonParentId" />
+                            <TextField fx:id="txtExportJsonParentID" promptText="%prompt.exportJsonParentId" />
+                            <Button fx:id="btnRunExportJson" onAction="#btnRunExportJsonClick" text="%button.exportJson" />
                         </VBox>
                     </content>
                 </TitledPane>
-                <TitledPane fx:id="clearSpecificPane" animated="false" text="Xóa Cụ Thể">
+                <TitledPane fx:id="clearSpecificPane" animated="false" text="%pane.clearSpecific.title">
                     <content>
                         <VBox spacing="8.0">
-                            <Label fx:id="clearSpecificLabel" text="Tìm và Chọn [loại] cần xóa (Xóa [loại] này khỏi MỌI item):" />
+                            <Label fx:id="clearSpecificLabel" text="Tìm và Chọn [loại] cần xóa..." />
                             <HBox spacing="10.0">
-                                <TextField fx:id="searchField" promptText="Tìm tên..." HBox.hgrow="ALWAYS"/>
-                                <Button fx:id="btnReloadList" onAction="#btnReloadListClick" text="Tải lại/Xóa tìm"/>
+                                <TextField fx:id="searchField" promptText="%prompt.search" HBox.hgrow="ALWAYS"/>
+                                <Button fx:id="btnReloadList" onAction="#btnReloadListClick" text="%button.reloadList"/>
                             </HBox>
                             <ScrollPane fx:id="selectionScrollPane" fitToWidth="true" prefHeight="250.0" styleClass="scroll-pane">
                                 <content>
-
                                     <FlowPane fx:id="selectionFlowPane" hgap="8.0" vgap="8.0">
                                         <padding><Insets top="5.0" bottom="5.0" left="5.0" right="5.0"/></padding>
                                     </FlowPane>
@@ -91,7 +88,7 @@
                 <Insets bottom="5.0" left="10.0" right="10.0" top="5.0"/>
             </padding>
             <children>
-                <Label fx:id="statusLabel" text="Sẵn sàng." HBox.hgrow="ALWAYS"/>
+                <Label fx:id="statusLabel" text="%status.ready" HBox.hgrow="ALWAYS"/>
                 <ProgressIndicator fx:id="statusIndicator" maxHeight="20.0" maxWidth="20.0" visible="false"/>
             </children>
             <VBox.margin>
