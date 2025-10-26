@@ -1,3 +1,5 @@
+package vinhtt.emby.sdkv4;
+
 import embyclient.ApiClient;
 import embyclient.ApiException;
 import embyclient.api.UserServiceApi;
