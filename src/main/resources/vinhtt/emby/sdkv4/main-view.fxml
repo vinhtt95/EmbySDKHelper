@@ -4,7 +4,7 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
-<VBox xmlns="http://javafx.com/javafx/20" xmlns:fx="http://javafx.com/fxml/1" fx:controller="vinhtt.emby.sdkv4.MainController">
+<VBox xmlns="http://javafx.com/javafx/20" xmlns:fx="http://javafx.com/fxml/1" fx:controller="vinhtt.emby.sdkv4.MainController" spacing="10.0">
     <children>
         <MenuBar fx:id="menuBar">
             <menus>
@@ -16,204 +16,70 @@
             </menus>
         </MenuBar>
 
-        <TabPane VBox.vgrow="ALWAYS" tabClosingPolicy="UNAVAILABLE">
-            <Tab text="Quản lý Studio">
-                <content>
-                    <VBox spacing="10.0">
-                        <padding>
-                            <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
-                        </padding>
-                        <TitledPane animated="false" text="Copy Studio Hàng loạt">
-                            <content>
-                                <VBox spacing="5.0">
-                                    <Label text="ID Item Mẫu (Copy từ đây):" />
-                                    <TextField fx:id="txtStudio_CopyFromItemID" promptText="10700" />
-                                    <Label text="ID Thư mục Đích (Paste vào đây):" />
-                                    <TextField fx:id="txtStudio_CopyToParentID" promptText="11244" />
-                                    <Button fx:id="btnStudio_RunCopy" onAction="#btnStudio_RunCopyClick" text="Thực thi Copy Studio" />
-                                </VBox>
-                            </content>
-                        </TitledPane>
-                        <TitledPane animated="false" text="Xóa Studio Hàng loạt">
-                            <content>
-                                <VBox spacing="5.0">
-                                    <Label text="ID Thư mục Đích (Xóa mọi studio trong thư mục này):" />
-                                    <TextField fx:id="txtStudio_ClearByParentID" promptText="11244" />
-                                    <Button fx:id="btnStudio_RunClearParent" onAction="#btnStudio_RunClearParentClick" text="Thực thi Xóa Studio (Theo Thư mục)" />
-                                </VBox>
-                            </content>
-                        </TitledPane>
-                        <TitledPane animated="false" text="Xóa Studio Cụ Thể">
-                            <content>
-                                <VBox spacing="5.0">
-                                    <Label text="Tìm và Chọn Studio cần xóa (Xóa studio này khỏi MỌI item):" />
-                                    <HBox spacing="10.0">
-                                        <TextField fx:id="studioSearchField" promptText="Tìm tên studio..." HBox.hgrow="ALWAYS"/>
-                                        <Button fx:id="btnStudio_ReloadList" onAction="#btnStudio_ReloadListClick" text="Tải lại/Xóa tìm"/>
-                                    </HBox>
-                                    <ScrollPane fx:id="studioScrollPane" fitToWidth="true" prefHeight="200.0" styleClass="scroll-pane">
-                                        <content>
-                                            <FlowPane fx:id="studioSelectionFlowPane" hgap="8.0" vgap="8.0">
-                                                <padding><Insets top="5.0" bottom="5.0" left="5.0" right="5.0"/></padding>
-                                            </FlowPane>
-                                        </content>
-                                    </ScrollPane>
-                                    <Button fx:id="btnStudio_RunClearSpecific" onAction="#btnStudio_RunClearSpecificClick" text="Thực thi Xóa Studio đã chọn" />
-                                </VBox>
-                            </content>
-                        </TitledPane>
-                    </VBox>
-                </content>
-            </Tab>
+        <VBox spacing="15.0" VBox.vgrow="ALWAYS">
+            <padding>
+                <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+            </padding>
+            <children>
+                <HBox alignment="CENTER_LEFT" spacing="10.0">
+                    <children>
+                        <Label text="Chọn loại Metadata:" style="-fx-font-weight: bold;"/>
+                        <ComboBox fx:id="typeComboBox" prefWidth="150.0" />
+                    </children>
+                </HBox>
 
-            <Tab text="Quản lý Genres">
-                <content>
-                    <VBox spacing="10.0">
-                        <padding>
-                            <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
-                        </padding>
-                        <TitledPane animated="false" text="Copy Genres Hàng loạt">
-                            <content>
-                                <VBox spacing="5.0">
-                                    <Label text="ID Item Mẫu (Copy từ đây):" />
-                                    <TextField fx:id="txtGenres_CopyFromItemID" />
-                                    <Label text="ID Thư mục Đích (Paste vào đây):" />
-                                    <TextField fx:id="txtGenres_CopyToParentID" />
-                                    <Button fx:id="btnGenres_RunCopy" onAction="#btnGenres_RunCopyClick" text="Thực thi Copy Genres" />
-                                </VBox>
-                            </content>
-                        </TitledPane>
-                        <TitledPane animated="false" text="Xóa Genres Hàng loạt">
-                            <content>
-                                <VBox spacing="5.0">
-                                    <Label text="ID Thư mục Đích (Xóa mọi genres trong thư mục này):" />
-                                    <TextField fx:id="txtGenres_ClearByParentID" />
-                                    <Button fx:id="btnGenres_RunClearParent" onAction="#btnGenres_RunClearParentClick" text="Thực thi Xóa Genres (Theo Thư mục)" />
-                                </VBox>
-                            </content>
-                        </TitledPane>
-                        <TitledPane animated="false" text="Xóa Genres Cụ Thể">
-                            <content>
-                                <VBox spacing="5.0">
-                                    <Label text="Tìm và Chọn Genres cần xóa (Xóa genres này khỏi MỌI item):" />
-                                    <HBox spacing="10.0">
-                                        <TextField fx:id="genresSearchField" promptText="Tìm tên genres..." HBox.hgrow="ALWAYS"/>
-                                        <Button fx:id="btnGenres_ReloadList" onAction="#btnGenres_ReloadListClick" text="Tải lại/Xóa tìm"/>
-                                    </HBox>
-                                    <ScrollPane fx:id="genresScrollPane" fitToWidth="true" prefHeight="200.0" styleClass="scroll-pane">
-                                        <content>
-                                            <FlowPane fx:id="genresSelectionFlowPane" hgap="8.0" vgap="8.0">
-                                                <padding><Insets top="5.0" bottom="5.0" left="5.0" right="5.0"/></padding>
-                                            </FlowPane>
-                                        </content>
-                                    </ScrollPane>
-                                    <Button fx:id="btnGenres_RunClearSpecific" onAction="#btnGenres_RunClearSpecificClick" text="Thực thi Xóa Genres đã chọn" />
-                                </VBox>
-                            </content>
-                        </TitledPane>
-                    </VBox>
-                </content>
-            </Tab>
+                <TitledPane fx:id="copyPane" animated="false" text="Copy Hàng loạt">
+                    <content>
+                        <VBox spacing="8.0">
+                            <Label text="Item Mẫu (Copy từ đây):" />
+                            <HBox spacing="5.0">
+                                <TextField fx:id="txtCopyFromInfo" editable="false" promptText="Chưa chọn item mẫu" HBox.hgrow="ALWAYS"/>
+                                <TextField fx:id="txtCopyFromItemID" visible="false" managed="false"/>
+                                <Button fx:id="btnChooseCopyFrom" text="Chọn..." onAction="#handleChooseCopyFromClick"/>
+                            </HBox>
 
-            <Tab text="Quản lý People">
-                <content>
-                    <VBox spacing="10.0">
-                        <padding>
-                            <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
-                        </padding>
-                        <TitledPane animated="false" text="Copy People Hàng loạt">
-                            <content>
-                                <VBox spacing="5.0">
-                                    <Label text="ID Item Mẫu (Copy từ đây):" />
-                                    <TextField fx:id="txtPeople_CopyFromItemID" />
-                                    <Label text="ID Thư mục Đích (Paste vào đây):" />
-                                    <TextField fx:id="txtPeople_CopyToParentID" />
-                                    <Button fx:id="btnPeople_RunCopy" onAction="#btnPeople_RunCopyClick" text="Thực thi Copy People" />
-                                </VBox>
-                            </content>
-                        </TitledPane>
-                        <TitledPane animated="false" text="Xóa People Hàng loạt">
-                            <content>
-                                <VBox spacing="5.0">
-                                    <Label text="ID Thư mục Đích (Xóa mọi people trong thư mục này):" />
-                                    <TextField fx:id="txtPeople_ClearByParentID" />
-                                    <Button fx:id="btnPeople_RunClearParent" onAction="#btnPeople_RunClearParentClick" text="Thực thi Xóa People (Theo Thư mục)" />
-                                </VBox>
-                            </content>
-                        </TitledPane>
-                        <TitledPane animated="false" text="Xóa People Cụ Thể">
-                            <content>
-                                <VBox spacing="5.0">
-                                    <Label text="Tìm và Chọn People cần xóa (Xóa people này khỏi MỌI item):" />
-                                    <HBox spacing="10.0">
-                                        <TextField fx:id="peopleSearchField" promptText="Tìm tên người..." HBox.hgrow="ALWAYS"/>
-                                        <Button fx:id="btnPeople_ReloadList" onAction="#btnPeople_ReloadListClick" text="Tải lại/Xóa tìm"/>
-                                    </HBox>
-                                    <ScrollPane fx:id="peopleScrollPane" fitToWidth="true" prefHeight="200.0" styleClass="scroll-pane">
-                                        <content>
-                                            <FlowPane fx:id="peopleSelectionFlowPane" hgap="8.0" vgap="8.0">
-                                                <padding><Insets top="5.0" bottom="5.0" left="5.0" right="5.0"/></padding>
-                                            </FlowPane>
-                                        </content>
-                                    </ScrollPane>
-                                    <Button fx:id="btnPeople_RunClearSpecific" onAction="#btnPeople_RunClearSpecificClick" text="Thực thi Xóa People đã chọn" />
-                                </VBox>
-                            </content>
-                        </TitledPane>
-                    </VBox>
-                </content>
-            </Tab>
+                            <Label text="Thư mục Đích (Paste vào đây):" />
+                            <HBox spacing="5.0">
+                                <TextField fx:id="txtCopyToInfo" editable="false" promptText="Chưa chọn thư mục đích" HBox.hgrow="ALWAYS"/>
+                                <TextField fx:id="txtCopyToParentID" visible="false" managed="false"/>
+                                <Button fx:id="btnChooseCopyTo" text="Chọn..." onAction="#handleChooseCopyToClick"/>
+                            </HBox>
+                            <Button fx:id="btnRunCopy" onAction="#btnRunCopyClick" text="Thực thi Copy" />
+                        </VBox>
+                    </content>
+                </TitledPane>
 
-            <Tab text="Quản lý Tags">
-                <content>
-                    <VBox spacing="10.0">
-                        <padding>
-                            <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
-                        </padding>
-                        <TitledPane animated="false" text="Copy Tags Hàng loạt">
-                            <content>
-                                <VBox spacing="5.0">
-                                    <Label text="ID Item Mẫu (Copy từ đây):" />
-                                    <TextField fx:id="txtTags_CopyFromItemID" />
-                                    <Label text="ID Thư mục Đích (Paste vào đây):" />
-                                    <TextField fx:id="txtTags_CopyToParentID" />
-                                    <Button fx:id="btnTags_RunCopy" onAction="#btnTags_RunCopyClick" text="Thực thi Copy Tags" />
-                                </VBox>
-                            </content>
-                        </TitledPane>
-                        <TitledPane animated="false" text="Xóa Tags Hàng loạt">
-                            <content>
-                                <VBox spacing="5.0">
-                                    <Label text="ID Thư mục Đích (Xóa mọi tags trong thư mục này):" />
-                                    <TextField fx:id="txtTags_ClearByParentID" />
-                                    <Button fx:id="btnTags_RunClearParent" onAction="#btnTags_RunClearParentClick" text="Thực thi Xóa Tags (Theo Thư mục)" />
-                                </VBox>
-                            </content>
-                        </TitledPane>
-                        <TitledPane animated="false" text="Xóa Tags Cụ Thể">
-                            <content>
-                                <VBox spacing="5.0">
-                                    <Label text="Tìm và Chọn Tag cần xóa (Xóa tag này khỏi MỌI item):" />
-                                    <HBox spacing="10.0">
-                                        <TextField fx:id="tagsSearchField" promptText="Tìm tên tag..." HBox.hgrow="ALWAYS"/>
-                                        <Button fx:id="btnTags_ReloadList" onAction="#btnTags_ReloadListClick" text="Tải lại/Xóa tìm"/>
-                                    </HBox>
-                                    <ScrollPane fx:id="tagsScrollPane" fitToWidth="true" prefHeight="200.0" styleClass="scroll-pane">
-                                        <content>
-                                            <FlowPane fx:id="tagsSelectionFlowPane" hgap="8.0" vgap="8.0">
-                                                <padding><Insets top="5.0" bottom="5.0" left="5.0" right="5.0"/></padding>
-                                            </FlowPane>
-                                        </content>
-                                    </ScrollPane>
-                                    <Button fx:id="btnTags_RunClearSpecific" onAction="#btnTags_RunClearSpecificClick" text="Thực thi Xóa Tags đã chọn" />
-                                </VBox>
-                            </content>
-                        </TitledPane>
-                    </VBox>
-                </content>
-            </Tab>
-        </TabPane>
+                <TitledPane fx:id="clearParentPane" animated="false" text="Xóa Hàng loạt theo Thư mục">
+                    <content>
+                        <VBox spacing="5.0">
+                            <Label fx:id="clearParentLabel" text="ID Thư mục Đích (Xóa mọi [loại] trong thư mục này):" />
+                            <TextField fx:id="txtClearByParentID" promptText="Nhập ID thư mục..." />
+                            <Button fx:id="btnRunClearParent" onAction="#btnRunClearParentClick" text="Thực thi Xóa (Theo Thư mục)" />
+                        </VBox>
+                    </content>
+                </TitledPane>
 
+                <TitledPane fx:id="clearSpecificPane" animated="false" text="Xóa Cụ Thể">
+                    <content>
+                        <VBox spacing="8.0">
+                            <Label fx:id="clearSpecificLabel" text="Tìm và Chọn [loại] cần xóa (Xóa [loại] này khỏi MỌI item):" />
+                            <HBox spacing="10.0">
+                                <TextField fx:id="searchField" promptText="Tìm tên..." HBox.hgrow="ALWAYS"/>
+                                <Button fx:id="btnReloadList" onAction="#btnReloadListClick" text="Tải lại/Xóa tìm"/>
+                            </HBox>
+                            <ScrollPane fx:id="selectionScrollPane" fitToWidth="true" prefHeight="250.0" styleClass="scroll-pane">
+                                <content>
+                                    <FlowPane fx:id="selectionFlowPane" hgap="8.0" vgap="8.0">
+                                        <padding><Insets top="5.0" bottom="5.0" left="5.0" right="5.0"/></padding>
+                                    </FlowPane>
+                                </content>
+                            </ScrollPane>
+                            <Button fx:id="btnRunClearSpecific" onAction="#btnRunClearSpecificClick" text="Thực thi Xóa đã chọn" />
+                        </VBox>
+                    </content>
+                </TitledPane>
+            </children>
+        </VBox>
         <HBox fx:id="statusBar" alignment="CENTER_LEFT" spacing="10.0" styleClass="status-bar">
             <padding>
                 <Insets bottom="5.0" left="10.0" right="10.0" top="5.0"/>

@@ -3,23 +3,45 @@ package vinhtt.emby.sdkv4;
 import embyclient.model.BaseItemDto;
 import embyclient.model.UserLibraryTagItem;
 import javafx.application.Platform;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.collections.transformation.FilteredList; // *** THÊM IMPORT ***
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.layout.FlowPane;
-import javafx.scene.layout.HBox; // *** THÊM IMPORT NÀY ***
+import javafx.scene.layout.HBox;
 import vinhtt.emby.sdkv4.service.*;
-// *** THÊM IMPORT TagModel (sẽ tạo ở bước 2) ***
 import vinhtt.emby.sdkv4.ui.TagModel;
-// *** THÊM IMPORT TagView (sẽ tạo ở bước 2) ***
 import vinhtt.emby.sdkv4.ui.TagView;
-
 
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
-
+import java.util.function.Predicate; // *** THÊM IMPORT ***
 
 public class MainController {
+
+    // Enum để định nghĩa các loại Metadata
+    private enum MetadataType {
+        STUDIO("Studio", "Studios"),
+        GENRE("Genre", "Genres"),
+        PEOPLE("People", "People"),
+        TAG("Tag", "Tags");
+
+        final String singularName;
+        final String pluralName;
+
+        MetadataType(String singular, String plural) {
+            this.singularName = singular;
+            this.pluralName = plural;
+        }
+
+        @Override
+        public String toString() {
+            return this.pluralName; // Hiển thị tên số nhiều trong ComboBox
+        }
+    }
 
     // --- Tham chiếu HelloApplication ---
     private HelloApplication app;
@@ -28,67 +50,41 @@ public class MainController {
     @FXML private MenuBar menuBar;
     @FXML private MenuItem logoutMenuItem;
 
-    // === XÓA VÙNG LOG ===
-    // @FXML private TextArea logTextArea;
-
-    // === THÊM STATUS BAR ===
+    // --- Status Bar ---
     @FXML private HBox statusBar;
     @FXML private Label statusLabel;
     @FXML private ProgressIndicator statusIndicator;
 
-    // --- Vùng Studio ---
-    @FXML private TextField txtStudio_CopyFromItemID;
-    @FXML private TextField txtStudio_CopyToParentID;
-    @FXML private Button btnStudio_RunCopy;
-    @FXML private TextField txtStudio_ClearByParentID;
-    @FXML private Button btnStudio_RunClearParent;
-    @FXML private TextField studioSearchField;
-    @FXML private Button btnStudio_ReloadList;
-    @FXML private ScrollPane studioScrollPane;
-    @FXML private FlowPane studioSelectionFlowPane;
-    @FXML private Button btnStudio_RunClearSpecific;
-    private final ToggleGroup studioToggleGroup = new ToggleGroup();
+    // --- Vùng Chọn Loại ---
+    @FXML private ComboBox<MetadataType> typeComboBox;
 
-    // --- Vùng Genres ---
-    @FXML private TextField txtGenres_CopyFromItemID;
-    @FXML private TextField txtGenres_CopyToParentID;
-    @FXML private Button btnGenres_RunCopy;
-    @FXML private TextField txtGenres_ClearByParentID;
-    @FXML private Button btnGenres_RunClearParent;
-    @FXML private TextField genresSearchField;
-    @FXML private Button btnGenres_ReloadList;
-    @FXML private ScrollPane genresScrollPane;
-    @FXML private FlowPane genresSelectionFlowPane;
-    @FXML private Button btnGenres_RunClearSpecific;
-    private final ToggleGroup genresToggleGroup = new ToggleGroup();
+    // --- TitledPane Copy ---
+    @FXML private TitledPane copyPane;
+    @FXML private TextField txtCopyFromInfo; // Hiển thị tên/ID
+    @FXML private TextField txtCopyFromItemID; // Lưu trữ ID (ẩn)
+    @FXML private Button btnChooseCopyFrom;
+    @FXML private TextField txtCopyToInfo; // Hiển thị tên/ID
+    @FXML private TextField txtCopyToParentID; // Lưu trữ ID (ẩn)
+    @FXML private Button btnChooseCopyTo;
+    @FXML private Button btnRunCopy;
 
-    // --- Vùng People ---
-    @FXML private TextField txtPeople_CopyFromItemID;
-    @FXML private TextField txtPeople_CopyToParentID;
-    @FXML private Button btnPeople_RunCopy;
-    @FXML private TextField txtPeople_ClearByParentID;
-    @FXML private Button btnPeople_RunClearParent;
-    @FXML private TextField peopleSearchField;
-    @FXML private Button btnPeople_ReloadList;
-    @FXML private ScrollPane peopleScrollPane;
-    @FXML private FlowPane peopleSelectionFlowPane;
-    @FXML private Button btnPeople_RunClearSpecific;
-    private final ToggleGroup peopleToggleGroup = new ToggleGroup();
+    // --- TitledPane Xóa Theo Thư Mục ---
+    @FXML private TitledPane clearParentPane;
+    @FXML private Label clearParentLabel;
+    @FXML private TextField txtClearByParentID;
+    @FXML private Button btnRunClearParent;
 
-    // --- Vùng Tags ---
-    @FXML private TextField txtTags_CopyFromItemID;
-    @FXML private TextField txtTags_CopyToParentID;
-    @FXML private Button btnTags_RunCopy;
-    @FXML private TextField txtTags_ClearByParentID;
-    @FXML private Button btnTags_RunClearParent;
-    @FXML private TextField tagsSearchField;
-    @FXML private Button btnTags_ReloadList;
-    @FXML private ScrollPane tagsScrollPane;
-    @FXML private FlowPane tagsSelectionFlowPane;
-    @FXML private Button btnTags_RunClearSpecific;
-    private final ToggleGroup tagsToggleGroup = new ToggleGroup();
+    // --- TitledPane Xóa Cụ Thể ---
+    @FXML private TitledPane clearSpecificPane;
+    @FXML private Label clearSpecificLabel;
+    @FXML private TextField searchField;
+    @FXML private Button btnReloadList;
+    @FXML private ScrollPane selectionScrollPane;
+    @FXML private FlowPane selectionFlowPane;
+    @FXML private Button btnRunClearSpecific;
+    private final ToggleGroup selectionToggleGroup = new ToggleGroup();
 
-    // --- Khai báo các Service ---
+    // --- Services ---
     private StudioService studioService;
     private GenresService genresService;
     private PeopleService peopleService;
@@ -96,8 +92,20 @@ public class MainController {
 
     // --- State ---
     private String userId;
+    private MetadataType currentType = MetadataType.STUDIO; // Mặc định là Studio
 
-    // --- Hàm Setters ---
+    // --- Danh sách gốc và FilteredList cho tối ưu tìm kiếm ---
+    private final ObservableList<Object> originalItemList = FXCollections.observableArrayList();
+    private FilteredList<Object> filteredItemList;
+
+    // --- Properties để lưu trữ ID/Tên đã chọn cho Copy ---
+    private final StringProperty selectedCopyFromId = new SimpleStringProperty();
+    private final StringProperty selectedCopyFromName = new SimpleStringProperty();
+    private final StringProperty selectedCopyToId = new SimpleStringProperty();
+    private final StringProperty selectedCopyToName = new SimpleStringProperty();
+
+
+    // --- Setters ---
     public void setApp(HelloApplication app) { this.app = app; }
 
     public void setUserId(String userId) {
@@ -108,71 +116,214 @@ public class MainController {
         this.peopleService = new PeopleService(itemService);
         this.tagService = new TagService(itemService);
         updateStatus("Đã khởi tạo các service với UserId: " + userId);
-        loadAllLists();
+        // Tải danh sách cho loại mặc định (Studio)
+        Platform.runLater(this::loadCurrentTypeList);
     }
 
-    // --- Hàm Khởi tạo Controller ---
+    // --- Initialize ---
     @FXML
     public void initialize() {
-        // === XÓA CHUYỂN HƯỚNG System.out ===
-        // PrintStream ps = new PrintStream(new TextAreaOutputStream(logTextArea));
-        // System.setOut(ps);
-        // System.setErr(ps);
+        // Khởi tạo ComboBox
+        typeComboBox.getItems().setAll(MetadataType.values());
+        typeComboBox.setValue(currentType); // Đặt giá trị mặc định
+        typeComboBox.valueProperty().addListener((obs, oldType, newType) -> {
+            if (newType != null) {
+                currentType = newType;
+                updateUITexts(); // Cập nhật các label/tiêu đề
+                clearSelectionAndSearch(); // Xóa lựa chọn và tìm kiếm cũ
+                loadCurrentTypeList(); // Tải danh sách cho loại mới
+            }
+        });
 
-        // Gán sự kiện cho nút Logout
+        // Binding cho các TextField hiển thị trong Copy Pane
+        txtCopyFromInfo.textProperty().bind(selectedCopyFromName);
+        txtCopyFromItemID.textProperty().bindBidirectional(selectedCopyFromId); // ID ẩn
+        txtCopyToInfo.textProperty().bind(selectedCopyToName);
+        txtCopyToParentID.textProperty().bindBidirectional(selectedCopyToId); // ID ẩn
+
+        // Khởi tạo FilteredList
+        filteredItemList = new FilteredList<>(originalItemList, p -> true); // Ban đầu hiển thị tất cả
+
+        // Binding ô tìm kiếm với FilteredList
+        searchField.textProperty().addListener((obs, oldVal, newVal) -> {
+            applyFilter(newVal);
+        });
+        // Nhấn Enter cũng áp dụng filter (mặc dù nó đã tự áp dụng khi gõ)
+        searchField.setOnAction(e -> applyFilter(searchField.getText()));
+
+        // Populate FlowPane từ FilteredList
+        populateFlowPaneFromFilteredList(); // Hiển thị ban đầu (rỗng)
+
+        // Gán sự kiện Logout
         if (logoutMenuItem != null) {
             logoutMenuItem.setOnAction(e -> handleLogout());
         } else {
-            System.err.println("CẢNH BÁO: logoutMenuItem là null."); // Vẫn giữ log lỗi này
+            System.err.println("CẢNH BÁO: logoutMenuItem là null.");
         }
 
-        // Thêm listeners cho các ô tìm kiếm
-        addSearchFieldListener(studioSearchField, this::loadStudioList);
-        addSearchFieldListener(genresSearchField, this::loadGenresList);
-        addSearchFieldListener(peopleSearchField, this::loadPeopleList);
-        addSearchFieldListener(tagsSearchField, this::loadTagsList);
-
-        updateStatus("Main Controller đã khởi tạo. Đang chờ UserId từ Login...");
+        updateUITexts(); // Cập nhật text lần đầu
+        updateStatus("Main Controller đã khởi tạo. Chọn loại Metadata để bắt đầu.");
     }
 
-    // --- Hàm Helper Chung ---
+    // --- Helper Methods ---
 
-    /** Cập nhật status bar (thread-safe) */
-    private void updateStatus(String message) {
-        updateStatus(message, false); // Mặc định không hiển thị loading
-    }
-
-    /** Cập nhật status bar với tùy chọn loading (thread-safe) */
+    private void updateStatus(String message) { updateStatus(message, false); }
     private void updateStatus(String message, boolean isLoading) {
         Platform.runLater(() -> {
-            if (statusLabel != null) {
-                statusLabel.setText(message);
-            }
-            if (statusIndicator != null) {
-                statusIndicator.setVisible(isLoading);
-            }
+            if (statusLabel != null) statusLabel.setText(message);
+            if (statusIndicator != null) statusIndicator.setVisible(isLoading);
         });
     }
 
-    /** Thêm listener vào TextField để tự động tải lại danh sách khi người dùng gõ */
-    private void addSearchFieldListener(TextField searchField, Runnable loadAction) {
-        if (searchField != null) {
-            searchField.textProperty().addListener((obs, oldVal, newVal) -> {
-                if (loadAction != null) {
-                    loadAction.run();
+    private void showAlert(Alert.AlertType alertType, String title, String content) {
+        Platform.runLater(() -> { // Đảm bảo chạy trên UI thread
+            Alert alert = new Alert(alertType);
+            alert.setTitle(title);
+            alert.setHeaderText(null);
+            alert.setContentText(content);
+            if (statusBar != null && statusBar.getScene() != null) {
+                alert.initOwner(statusBar.getScene().getWindow());
+            }
+            alert.showAndWait();
+        });
+    }
+
+    /** Cập nhật các Label và Tiêu đề Pane dựa trên currentType */
+    private void updateUITexts() {
+        String singular = currentType.singularName.toLowerCase();
+        String plural = currentType.pluralName;
+
+        copyPane.setText("Copy " + plural + " Hàng loạt");
+        clearParentPane.setText("Xóa " + plural + " Hàng loạt theo Thư mục");
+        clearParentLabel.setText("ID Thư mục Đích (Xóa mọi " + singular + " trong thư mục này):");
+        btnRunClearParent.setText("Thực thi Xóa " + plural + " (Theo Thư mục)");
+        clearSpecificPane.setText("Xóa " + plural + " Cụ Thể");
+        clearSpecificLabel.setText("Tìm và Chọn " + currentType.singularName + " cần xóa (Xóa " + singular + " này khỏi MỌI item):");
+        searchField.setPromptText("Tìm tên " + singular + "...");
+        btnRunClearSpecific.setText("Thực thi Xóa " + currentType.singularName + " đã chọn");
+        btnRunCopy.setText("Thực thi Copy " + plural);
+    }
+
+    /** Xóa lựa chọn trong FlowPane và ô tìm kiếm */
+    private void clearSelectionAndSearch() {
+        selectionToggleGroup.selectToggle(null);
+        searchField.clear();
+        // applyFilter("") sẽ được gọi bởi listener của searchField
+    }
+
+    /** Tải danh sách gốc dựa trên currentType */
+    private void loadCurrentTypeList() {
+        String taskName = "Tải danh sách " + currentType.pluralName;
+        runTask(taskName, () -> {
+            updateStatus("Đang " + taskName.toLowerCase() + "...", true);
+            List<?> rawList = Collections.emptyList(); // Dùng wildcard List<?>
+            try {
+                switch (currentType) {
+                    case STUDIO: rawList = studioService.getListStudios(); break;
+                    case GENRE:  rawList = genresService.getListGenres(); break;
+                    case PEOPLE: rawList = peopleService.getListPeople(); break;
+                    case TAG:    rawList = tagService.getListTags(); break;
                 }
+            } catch (Exception e) {
+                // Lỗi đã được xử lý trong runTask, chỉ cần log thêm nếu muốn
+                System.err.println("Lỗi API khi tải danh sách " + currentType.pluralName);
+                rawList = Collections.emptyList(); // Đảm bảo list không null
+            }
+
+            final List<?> finalList = rawList != null ? rawList : Collections.emptyList(); // Đảm bảo không null
+
+            Platform.runLater(() -> {
+                originalItemList.setAll(finalList); // Cập nhật danh sách gốc
+                // FilteredList tự động cập nhật
+                populateFlowPaneFromFilteredList(); // Cập nhật lại FlowPane từ FilteredList
+                updateStatus("Tải xong " + currentType.pluralName + ". (" + originalItemList.size() + " mục)", false);
             });
-            searchField.setOnAction(e -> {
-                if (loadAction != null) {
-                    loadAction.run();
-                }
-            });
+        });
+    }
+
+    /** Áp dụng bộ lọc cho FilteredList */
+    private void applyFilter(String filterText) {
+        String lowerCaseFilter = filterText == null ? "" : filterText.toLowerCase().trim();
+
+        filteredItemList.setPredicate(item -> {
+            if (lowerCaseFilter.isEmpty()) {
+                return true; // Hiển thị tất cả nếu filter rỗng
+            }
+            String itemName = getItemName(item);
+            return itemName != null && itemName.toLowerCase().contains(lowerCaseFilter);
+        });
+        // Cập nhật lại FlowPane sau khi filter thay đổi
+        populateFlowPaneFromFilteredList();
+    }
+
+    /** Helper lấy tên từ item (BaseItemDto hoặc UserLibraryTagItem) */
+    private String getItemName(Object item) {
+        if (item instanceof BaseItemDto) {
+            return ((BaseItemDto) item).getName();
+        } else if (item instanceof UserLibraryTagItem) {
+            return ((UserLibraryTagItem) item).getName();
+        }
+        return null;
+    }
+
+    /** Helper lấy ID hoặc Name làm UserData */
+    private String getUserData(Object item) {
+        switch (currentType) {
+            case STUDIO:
+            case PEOPLE:
+                return ((BaseItemDto) item).getId(); // Studio, People dùng ID
+            case GENRE:
+            case TAG:
+                return getItemName(item); // Genre, Tag dùng Name
+            default: return null;
         }
     }
 
 
-    /** Chạy tác vụ dài trên luồng nền và cập nhật status bar */
-    private void runTask(String taskName, Runnable task) { // Thêm taskName
+    /** Populate FlowPane từ FilteredList (thay thế hàm cũ) */
+    private void populateFlowPaneFromFilteredList() {
+        selectionFlowPane.getChildren().clear();
+        selectionToggleGroup.getToggles().clear();
+
+        for (Object item : filteredItemList) { // Duyệt qua FilteredList
+            String rawName = getItemName(item);
+            if (rawName == null || rawName.isEmpty()) continue;
+
+            TagModel tagModel = TagModel.parse(rawName);
+            String userData = getUserData(item);
+
+            ToggleButton chipButton = new ToggleButton();
+            chipButton.setUserData(userData);
+            chipButton.setToggleGroup(selectionToggleGroup);
+
+            TagView tagView = new TagView(tagModel);
+            tagView.getDeleteButton().setVisible(false);
+            tagView.getDeleteButton().setManaged(false);
+
+            chipButton.setGraphic(tagView);
+            chipButton.getStyleClass().add("chip-toggle-button");
+
+            selectionFlowPane.getChildren().add(chipButton);
+        }
+    }
+
+
+    /** Lấy tên hiển thị từ ToggleButton chứa TagView */
+    private String getDisplayNameFromToggle(Toggle toggle) {
+        if (toggle instanceof ToggleButton) {
+            ToggleButton button = (ToggleButton) toggle;
+            if (button.getGraphic() instanceof TagView) {
+                TagView tagView = (TagView) button.getGraphic();
+                return tagView.getTagModel().getDisplayName();
+            }
+            return button.getText();
+        }
+        return "Không xác định";
+    }
+
+    /** Chạy tác vụ nền (giữ nguyên runTask cũ) */
+    private void runTask(String taskName, Runnable task) {
+        // ... (Giữ nguyên logic runTask đã cung cấp ở lần trước) ...
         if (studioService == null || genresService == null || peopleService == null || tagService == null) {
             updateStatus("LỖI: Services chưa được khởi tạo.");
             showAlert(Alert.AlertType.ERROR, "Lỗi Service", "Các service chưa sẵn sàng, vui lòng thử lại sau.");
@@ -183,22 +334,28 @@ public class MainController {
         Thread thread = new Thread(() -> {
             try {
                 task.run();
-                updateStatus("Hoàn thành: " + taskName + " thành công!", false); // Kết thúc loading
+                // Không tự động báo thành công ở đây, để hàm gọi tự báo
+                // updateStatus("Hoàn thành: " + taskName + " thành công!", false);
             } catch (Exception e) {
                 String errorMsg = "LỖI khi thực thi " + taskName + ": " + e.getMessage();
                 System.err.println("\n!!! ĐÃ XẢY RA LỖI !!!"); // Log lỗi ra console để debug
                 e.printStackTrace();
                 updateStatus(errorMsg, false); // Kết thúc loading, báo lỗi
-                // Hiển thị lỗi cho người dùng trên UI thread
-                Platform.runLater(() -> showAlert(Alert.AlertType.ERROR, "Lỗi Thực Thi", errorMsg));
+                showAlert(Alert.AlertType.ERROR, "Lỗi Thực Thi", errorMsg); // Hiển thị lỗi trên UI
+            } finally {
+                // Luôn tắt loading indicator dù thành công hay lỗi (trừ khi hàm gọi muốn giữ)
+                // Platform.runLater(() -> statusIndicator.setVisible(false));
             }
         });
-        thread.setDaemon(true); // Đảm bảo luồng kết thúc khi ứng dụng đóng
+        thread.setDaemon(true);
         thread.start();
     }
 
-    /** Xử lý sự kiện Logout */
-    private void handleLogout() {
+
+    // --- Event Handlers ---
+
+    @FXML private void handleLogout() {
+        // ... (Giữ nguyên) ...
         if (app != null) {
             app.handleLogout();
         } else {
@@ -207,284 +364,137 @@ public class MainController {
         }
     }
 
-    /** Tải tất cả danh sách */
-    private void loadAllLists() {
-        loadStudioList();
-        loadGenresList();
-        loadPeopleList();
-        loadTagsList();
+    @FXML private void btnReloadListClick() {
+        searchField.clear(); // Xóa bộ lọc
+        loadCurrentTypeList(); // Tải lại danh sách gốc
     }
 
-
-    // --- CÁC HÀM TẢI DANH SÁCH VÀ POPULATE FLOWPANE ---
-
-    @FXML private void btnStudio_ReloadListClick() { studioSearchField.clear(); loadStudioList(); }
-    private void loadStudioList() {
-        runTask("Tải danh sách Studio", () -> { // <--- Sửa ở đây
-            updateStatus("Đang tải danh sách Studio...", true); // Cập nhật trạng thái cụ thể hơn
-            List<BaseItemDto> list = studioService.getListStudios();
-            String searchTerm = studioSearchField.getText().toLowerCase().trim();
-
-            List<BaseItemDto> filteredList = (list != null) ? list.stream()
-                    .filter(item -> item.getName() != null && (searchTerm.isEmpty() || item.getName().toLowerCase().contains(searchTerm)))
-                    .collect(Collectors.toList()) : Collections.emptyList();
-
-            Platform.runLater(() -> {
-                // *** SỬA ĐỔI Ở ĐÂY (Bước 2) ***
-                populateFlowPaneWithTagModels(studioSelectionFlowPane, studioToggleGroup, filteredList,
-                        item -> item.getId(), // UserData là ID
-                        item -> item.getName()); // Input cho TagModel.parse là Name
-                // *** KẾT THÚC SỬA ĐỔI ***
-                updateStatus("Tải xong danh sách Studio. (" + filteredList.size() + " mục)", false); // <--- Sửa ở đây
-            });
-        });
+    // --- Handlers cho Copy ---
+    @FXML private void handleChooseCopyFromClick() {
+        // TODO: Mở Dialog chọn Item Mẫu
+        // Dialog này cần trả về ID và Name của item được chọn
+        // Ví dụ:
+        // ItemSelectionResult result = showItemSelectionDialog("Chọn Item Mẫu (" + currentType.singularName + ")");
+        // if (result != null) {
+        //     selectedCopyFromId.set(result.getId());
+        //     selectedCopyFromName.set(result.getName() + " (ID: " + result.getId() + ")");
+        // }
+        updateStatus("Chức năng 'Chọn Item Mẫu' chưa được triển khai.");
+        showAlert(Alert.AlertType.INFORMATION, "Thông báo", "Chức năng chọn item mẫu từ thư viện chưa được hoàn thiện.");
     }
 
-    @FXML private void btnGenres_ReloadListClick() { genresSearchField.clear(); loadGenresList(); }
-    private void loadGenresList() {
-        runTask("Tải danh sách Genres", () -> { // <--- Sửa ở đây
-            updateStatus("Đang tải danh sách Genres...", true);
-            List<BaseItemDto> list = genresService.getListGenres();
-            String searchTerm = genresSearchField.getText().toLowerCase().trim();
-
-            List<BaseItemDto> filteredList = (list != null) ? list.stream()
-                    .filter(item -> item.getName() != null && (searchTerm.isEmpty() || item.getName().toLowerCase().contains(searchTerm)))
-                    .collect(Collectors.toList()) : Collections.emptyList();
-
-            Platform.runLater(() -> {
-                // *** SỬA ĐỔI Ở ĐÂY (Bước 2) ***
-                populateFlowPaneWithTagModels(genresSelectionFlowPane, genresToggleGroup, filteredList,
-                        item -> item.getName(), // UserData là Name (vì Genres dùng Name)
-                        item -> item.getName());
-                // *** KẾT THÚC SỬA ĐỔI ***
-                updateStatus("Tải xong danh sách Genres. (" + filteredList.size() + " mục)", false); // <--- Sửa ở đây
-            });
-        });
+    @FXML private void handleChooseCopyToClick() {
+        // TODO: Mở Dialog chọn Folder Đích
+        // Dialog này cần trả về ID và Name của folder được chọn
+        // Ví dụ:
+        // ItemSelectionResult result = showFolderSelectionDialog("Chọn Thư Mục Đích");
+        // if (result != null) {
+        //     selectedCopyToId.set(result.getId());
+        //     selectedCopyToName.set(result.getName() + " (ID: " + result.getId() + ")");
+        // }
+        updateStatus("Chức năng 'Chọn Thư Mục Đích' chưa được triển khai.");
+        showAlert(Alert.AlertType.INFORMATION, "Thông báo", "Chức năng chọn thư mục đích từ thư viện chưa được hoàn thiện.");
     }
 
-    @FXML private void btnPeople_ReloadListClick() { peopleSearchField.clear(); loadPeopleList(); }
-    private void loadPeopleList() {
-        runTask("Tải danh sách People", () -> { // <--- Sửa ở đây
-            updateStatus("Đang tải danh sách People...", true);
-            List<BaseItemDto> list = peopleService.getListPeople();
-            String searchTerm = peopleSearchField.getText().toLowerCase().trim();
+    @FXML private void btnRunCopyClick() {
+        String copyFromId = selectedCopyFromId.get();
+        String copyToId = selectedCopyToId.get();
 
-            List<BaseItemDto> filteredList = (list != null) ? list.stream()
-                    .filter(item -> item.getName() != null && (searchTerm.isEmpty() || item.getName().toLowerCase().contains(searchTerm)))
-                    .collect(Collectors.toList()) : Collections.emptyList();
+        if (copyFromId == null || copyFromId.isEmpty() || copyToId == null || copyToId.isEmpty()) {
+            showAlert(Alert.AlertType.WARNING, "Thiếu thông tin", "Vui lòng chọn Item Mẫu và Thư mục Đích.");
+            return;
+        }
 
-            Platform.runLater(() -> {
-                // *** SỬA ĐỔI Ở ĐÂY (Bước 2) ***
-                populateFlowPaneWithTagModels(peopleSelectionFlowPane, peopleToggleGroup, filteredList,
-                        item -> item.getId(), // UserData là ID
-                        item -> item.getName());
-                // *** KẾT THÚC SỬA ĐỔI ***
-                updateStatus("Tải xong danh sách People. (" + filteredList.size() + " mục)", false); // <--- Sửa ở đây
-            });
-        });
-    }
-
-    @FXML private void btnTags_ReloadListClick() { tagsSearchField.clear(); loadTagsList(); }
-    private void loadTagsList() {
-        runTask("Tải danh sách Tags", () -> { // <--- Sửa ở đây
-            updateStatus("Đang tải danh sách Tags...", true);
-            List<UserLibraryTagItem> list = tagService.getListTags();
-            String searchTerm = tagsSearchField.getText().toLowerCase().trim();
-
-            List<UserLibraryTagItem> filteredList = (list != null) ? list.stream()
-                    .filter(item -> item.getName() != null && (searchTerm.isEmpty() || item.getName().toLowerCase().contains(searchTerm)))
-                    .collect(Collectors.toList()) : Collections.emptyList();
-
-            Platform.runLater(() -> {
-                // *** SỬA ĐỔI Ở ĐÂY (Bước 2) ***
-                populateFlowPaneWithTagModels(tagsSelectionFlowPane, tagsToggleGroup, filteredList,
-                        item -> item.getName(), // UserData là Name (vì Tags dùng Name)
-                        item -> item.getName());
-                // *** KẾT THÚC SỬA ĐỔI ***
-                updateStatus("Tải xong danh sách Tags. (" + filteredList.size() + " mục)", false); // <--- Sửa ở đây
-            });
-        });
-    }
-
-    /**
-     * Helper chung để đổ dữ liệu vào FlowPane dưới dạng Chip (ToggleButton)
-     * sử dụng TagModel và TagView (*** HÀM MỚI - Bước 2 ***)
-     */
-    private <T> void populateFlowPaneWithTagModels(
-            FlowPane flowPane,
-            ToggleGroup toggleGroup,
-            List<T> items,
-            java.util.function.Function<T, String> userDataExtractor, // Lấy UserData (ID hoặc Name thô)
-            java.util.function.Function<T, String> rawNameExtractor)  // Lấy Name thô để parse TagModel
-    {
-        flowPane.getChildren().clear();
-        toggleGroup.getToggles().clear();
-
-        if (items != null) {
-            for (T item : items) {
-                String rawName = rawNameExtractor.apply(item);
-                if (rawName == null || rawName.isEmpty()) continue; // Bỏ qua nếu tên rỗng
-
-                TagModel tagModel = TagModel.parse(rawName); // Parse thành TagModel
-                String userData = userDataExtractor.apply(item); // Lấy UserData (ID/Name)
-
-                ToggleButton chipButton = new ToggleButton();
-                chipButton.setUserData(userData); // Lưu ID hoặc Name thô vào UserData
-                chipButton.setToggleGroup(toggleGroup);
-
-                // Tạo TagView để hiển thị
-                TagView tagView = new TagView(tagModel);
-                // Vô hiệu hóa nút xóa trong TagView (chỉ để hiển thị)
-                tagView.getDeleteButton().setVisible(false);
-                tagView.getDeleteButton().setManaged(false);
-
-                chipButton.setGraphic(tagView); // Đặt TagView làm nội dung đồ họa cho ToggleButton
-                chipButton.getStyleClass().add("chip-toggle-button"); // CSS riêng cho ToggleButton chứa chip
-
-                flowPane.getChildren().add(chipButton);
+        String taskName = "Copy " + currentType.pluralName;
+        runTask(taskName, () -> {
+            boolean success = false;
+            try {
+                switch (currentType) {
+                    case STUDIO: studioService.copyStudio(copyFromId, copyToId); success = true; break;
+                    case GENRE:  genresService.copyGenres(copyFromId, copyToId); success = true; break;
+                    case PEOPLE: peopleService.copyPeople(copyFromId, copyToId); success = true; break;
+                    case TAG:    tagService.copyTags(copyFromId, copyToId); success = true; break;
+                }
+                if(success) {
+                    updateStatus("Hoàn thành: " + taskName + " thành công!", false);
+                } else {
+                    updateStatus("Lỗi: Không thể thực hiện " + taskName + " cho loại không xác định.", false);
+                }
+            } catch (Exception e) {
+                // Lỗi đã được xử lý trong runTask, chỉ cần đảm bảo loading tắt
+                updateStatus("Lỗi khi " + taskName + ": " + e.getMessage(), false);
+                // Không cần throw lại lỗi ở đây
             }
-        }
-    }
-
-
-    // --- CÁC HÀM XỬ LÝ SỰ KIỆN COPY ---
-    @FXML private void btnStudio_RunCopyClick() {
-        runTask("Copy Studio", () -> {
-            studioService.copyStudio(txtStudio_CopyFromItemID.getText(), txtStudio_CopyToParentID.getText());
-        });
-    }
-    @FXML private void btnGenres_RunCopyClick() {
-        runTask("Copy Genres", () -> {
-            genresService.copyGenres(txtGenres_CopyFromItemID.getText(), txtGenres_CopyToParentID.getText());
-        });
-    }
-    @FXML private void btnPeople_RunCopyClick() {
-        runTask("Copy People", () -> {
-            peopleService.copyPeople(txtPeople_CopyFromItemID.getText(), txtPeople_CopyToParentID.getText());
-        });
-    }
-    @FXML private void btnTags_RunCopyClick() {
-        runTask("Copy Tags", () -> {
-            tagService.copyTags(txtTags_CopyFromItemID.getText(), txtTags_CopyToParentID.getText());
         });
     }
 
-    // --- CÁC HÀM XỬ LÝ SỰ KIỆN XÓA THEO THƯ MỤC ---
-    @FXML private void btnStudio_RunClearParentClick() {
-        runTask("Xóa Studio theo thư mục", () -> {
-            studioService.clearStudioByParentID(txtStudio_ClearByParentID.getText());
-        });
-    }
-    @FXML private void btnGenres_RunClearParentClick() {
-        runTask("Xóa Genres theo thư mục", () -> {
-            genresService.clearGenresByParentID(txtGenres_ClearByParentID.getText());
-        });
-    }
-    @FXML private void btnPeople_RunClearParentClick() {
-        runTask("Xóa People theo thư mục", () -> {
-            peopleService.clearPeopleByParentID(txtPeople_ClearByParentID.getText());
-        });
-    }
-    @FXML private void btnTags_RunClearParentClick() {
-        runTask("Xóa Tags theo thư mục", () -> {
-            tagService.clearTagsByParentID(txtTags_ClearByParentID.getText());
-        });
-    }
-
-
-    // --- CÁC HÀM XỬ LÝ SỰ KIỆN XÓA CỤ THỂ ---
-    @FXML private void btnStudio_RunClearSpecificClick() {
-        Toggle selectedToggle = studioToggleGroup.getSelectedToggle();
-        if (selectedToggle == null || selectedToggle.getUserData() == null) {
-            updateStatus("LỖI: Vui lòng chọn một Studio từ danh sách.");
-            showAlert(Alert.AlertType.WARNING, "Chưa chọn Studio", "Vui lòng chọn một Studio để xóa.");
+    // --- Handlers cho Xóa Theo Thư Mục ---
+    @FXML private void btnRunClearParentClick() {
+        String parentId = txtClearByParentID.getText();
+        if (parentId == null || parentId.trim().isEmpty()) {
+            showAlert(Alert.AlertType.WARNING, "Thiếu thông tin", "Vui lòng nhập ID Thư mục Đích.");
             return;
         }
-        String idToClear = (String) selectedToggle.getUserData(); // Lấy ID từ UserData
-        String nameSelected = getDisplayNameFromToggle(selectedToggle); // Lấy tên hiển thị
-
-        runTask("Xóa Studio cụ thể: " + nameSelected, () -> { // Task name rõ ràng hơn
-            studioService.clearStudio(idToClear);
-            // Tải lại danh sách sau khi xóa thành công (trên UI thread)
-            Platform.runLater(this::loadStudioList);
-        });
-    }
-
-    @FXML private void btnGenres_RunClearSpecificClick() {
-        Toggle selectedToggle = genresToggleGroup.getSelectedToggle();
-        if (selectedToggle == null || selectedToggle.getUserData() == null) {
-            updateStatus("LỖI: Vui lòng chọn một Genre từ danh sách.");
-            showAlert(Alert.AlertType.WARNING, "Chưa chọn Genre", "Vui lòng chọn một Genre để xóa.");
-            return;
-        }
-        String nameToClear = (String) selectedToggle.getUserData(); // Genres dùng Name
-        String nameSelected = getDisplayNameFromToggle(selectedToggle);
-
-        runTask("Xóa Genre cụ thể: " + nameSelected, () -> {
-            genresService.clearGenres(nameToClear);
-            Platform.runLater(this::loadGenresList);
-        });
-    }
-
-    @FXML private void btnPeople_RunClearSpecificClick() {
-        Toggle selectedToggle = peopleToggleGroup.getSelectedToggle();
-        if (selectedToggle == null || selectedToggle.getUserData() == null) {
-            updateStatus("LỖI: Vui lòng chọn một People từ danh sách.");
-            showAlert(Alert.AlertType.WARNING, "Chưa chọn People", "Vui lòng chọn một người để xóa.");
-            return;
-        }
-        String idToClear = (String) selectedToggle.getUserData(); // Lấy ID
-        String nameSelected = getDisplayNameFromToggle(selectedToggle);
-
-        runTask("Xóa People cụ thể: " + nameSelected, () -> {
-            peopleService.clearPeople(idToClear);
-            Platform.runLater(this::loadPeopleList);
-        });
-    }
-
-    @FXML private void btnTags_RunClearSpecificClick() {
-        Toggle selectedToggle = tagsToggleGroup.getSelectedToggle();
-        if (selectedToggle == null || selectedToggle.getUserData() == null) {
-            updateStatus("LỖI: Vui lòng chọn một Tag từ danh sách.");
-            showAlert(Alert.AlertType.WARNING, "Chưa chọn Tag", "Vui lòng chọn một Tag để xóa.");
-            return;
-        }
-        String nameToClear = (String) selectedToggle.getUserData(); // Tags dùng Name
-        String nameSelected = getDisplayNameFromToggle(selectedToggle);
-
-        runTask("Xóa Tag cụ thể: " + nameSelected, () -> {
-            tagService.clearTags(nameToClear);
-            Platform.runLater(this::loadTagsList);
-        });
-    }
-
-    /**
-     * Helper để lấy tên hiển thị từ TagView bên trong ToggleButton (Bước 2).
-     */
-    private String getDisplayNameFromToggle(Toggle toggle) {
-        if (toggle instanceof ToggleButton) {
-            ToggleButton button = (ToggleButton) toggle;
-            if (button.getGraphic() instanceof TagView) {
-                TagView tagView = (TagView) button.getGraphic();
-                return tagView.getTagModel().getDisplayName();
+        String taskName = "Xóa " + currentType.pluralName + " theo thư mục";
+        runTask(taskName, () -> {
+            boolean success = false;
+            try {
+                switch (currentType) {
+                    case STUDIO: studioService.clearStudioByParentID(parentId); success = true; break;
+                    case GENRE:  genresService.clearGenresByParentID(parentId); success = true; break;
+                    case PEOPLE: peopleService.clearPeopleByParentID(parentId); success = true; break;
+                    case TAG:    tagService.clearTagsByParentID(parentId); success = true; break;
+                }
+                if(success) {
+                    updateStatus("Hoàn thành: " + taskName + " thành công!", false);
+                } else {
+                    updateStatus("Lỗi: Không thể thực hiện " + taskName + " cho loại không xác định.", false);
+                }
+            } catch (Exception e) {
+                updateStatus("Lỗi khi " + taskName + ": " + e.getMessage(), false);
             }
-            // Fallback nếu graphic không phải TagView (không nên xảy ra)
-            return button.getText(); // Lấy text gốc nếu không có graphic TagView
-        }
-        return "Không xác định";
+        });
     }
 
-
-    // --- Hàm Helper hiển thị Alert ---
-    private void showAlert(Alert.AlertType alertType, String title, String content) {
-        Alert alert = new Alert(alertType);
-        alert.setTitle(title);
-        alert.setHeaderText(null);
-        alert.setContentText(content);
-        // Lấy Stage gốc để set Owner (nếu có thể)
-        if (statusBar != null && statusBar.getScene() != null) { // Sửa thành statusBar
-            alert.initOwner(statusBar.getScene().getWindow());
+    // --- Handlers cho Xóa Cụ Thể ---
+    @FXML private void btnRunClearSpecificClick() {
+        Toggle selectedToggle = selectionToggleGroup.getSelectedToggle();
+        if (selectedToggle == null || selectedToggle.getUserData() == null) {
+            showAlert(Alert.AlertType.WARNING, "Chưa chọn", "Vui lòng chọn một " + currentType.singularName + " từ danh sách.");
+            return;
         }
-        alert.showAndWait();
+        String idOrNameToClear = (String) selectedToggle.getUserData();
+        String nameSelected = getDisplayNameFromToggle(selectedToggle);
+
+        String taskName = "Xóa " + currentType.singularName + " cụ thể: " + nameSelected;
+        runTask(taskName, () -> {
+            boolean success = false;
+            try {
+                switch (currentType) {
+                    case STUDIO: studioService.clearStudio(idOrNameToClear); success = true; break; // Dùng ID
+                    case GENRE:  genresService.clearGenres(idOrNameToClear); success = true; break; // Dùng Name
+                    case PEOPLE: peopleService.clearPeople(idOrNameToClear); success = true; break; // Dùng ID
+                    case TAG:    tagService.clearTags(idOrNameToClear); success = true; break; // Dùng Name
+                }
+                if(success) {
+                    updateStatus("Hoàn thành: " + taskName + " thành công!", false);
+                    Platform.runLater(this::loadCurrentTypeList); // Tải lại danh sách sau khi xóa
+                } else {
+                    updateStatus("Lỗi: Không thể thực hiện " + taskName + " cho loại không xác định.", false);
+                }
+            } catch (Exception e) {
+                updateStatus("Lỗi khi " + taskName + ": " + e.getMessage(), false);
+            }
+        });
+    }
+
+    // Cấu trúc lớp giả định cho kết quả trả về từ Dialog chọn Item/Folder
+    private static class ItemSelectionResult {
+        private String id;
+        private String name;
+        // constructor, getters...
+        public ItemSelectionResult(String id, String name) { this.id = id; this.name = name;}
+        public String getId() { return id; }
+        public String getName() { return name; }
     }
 }
