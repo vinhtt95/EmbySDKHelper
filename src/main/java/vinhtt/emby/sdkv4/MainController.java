@@ -49,16 +49,11 @@ public class MainController {
     // --- Vùng Chọn Loại ---
     @FXML private ComboBox<MetadataType> typeComboBox;
 
-    // --- TitledPane Copy (SỬA LẠI VỚI TEXTFIELD) ---
+    // --- TitledPane Copy ---
     @FXML private TitledPane copyPane;
     @FXML private TextField txtCopyFromItemID; // TextField nhập ID mẫu
     @FXML private TextField txtCopyToParentID; // TextField nhập ID đích
     @FXML private Button btnRunCopy;
-    // --- XÓA CÁC BIẾN LIÊN QUAN ĐẾN NÚT "CHỌN..." ---
-    // @FXML private TextField txtCopyFromInfo;
-    // @FXML private Button btnChooseCopyFrom;
-    // @FXML private TextField txtCopyToInfo;
-    // @FXML private Button btnChooseCopyTo;
 
     // --- TitledPane Xóa Theo Thư Mục ---
     @FXML private TitledPane clearParentPane;
@@ -89,13 +84,6 @@ public class MainController {
     // --- Danh sách gốc và FilteredList ---
     private final ObservableList<Object> originalItemList = FXCollections.observableArrayList();
     private FilteredList<Object> filteredItemList;
-
-    // --- XÓA CÁC PROPERTIES CHO COPY ---
-    // private final StringProperty selectedCopyFromId = new SimpleStringProperty();
-    // private final StringProperty selectedCopyFromName = new SimpleStringProperty();
-    // private final StringProperty selectedCopyToId = new SimpleStringProperty();
-    // private final StringProperty selectedCopyToName = new SimpleStringProperty();
-
 
     // --- Setters ---
     public void setApp(HelloApplication app) { this.app = app; }
@@ -129,12 +117,6 @@ public class MainController {
             }
         });
 
-        // --- XÓA BINDING CHO CÁC TEXTFIELD HIỂN THỊ COPY ---
-        // txtCopyFromInfo.textProperty().bind(selectedCopyFromName);
-        // txtCopyFromItemID.textProperty().bindBidirectional(selectedCopyFromId); // ID ẩn
-        // txtCopyToInfo.textProperty().bind(selectedCopyToName);
-        // txtCopyToParentID.textProperty().bindBidirectional(selectedCopyToId); // ID ẩn
-
         // Khởi tạo FilteredList (giữ nguyên)
         filteredItemList = new FilteredList<>(originalItemList, p -> true);
 
@@ -153,7 +135,7 @@ public class MainController {
         updateStatus("Main Controller đã khởi tạo. Chọn loại Metadata để bắt đầu.");
     }
 
-    // --- Helper Methods (updateStatus, showAlert, updateUITexts, clearSelectionAndSearch, loadCurrentTypeList, applyFilter, getItemName, getUserData, populateFlowPaneFromFilteredList, getDisplayNameFromToggle, runTask) ---
+    // --- Helper Methods (updateStatus, showAlert, updateUITexts, clearSelectionAndSearch, loadCurrentTypeList, applyFilter, getItemName, getUserData, getDisplayNameFromToggle, runTask) ---
     // Giữ nguyên các hàm helper này như đã cung cấp ở lần trước
 
     private void updateStatus(String message) { updateStatus(message, false); }
@@ -254,18 +236,18 @@ public class MainController {
         switch (currentType) {
             case STUDIO:
             case PEOPLE:
-                // Nên kiểm tra kiểu trước khi cast
                 if (item instanceof BaseItemDto) {
                     return ((BaseItemDto) item).getId();
                 }
-                break; // Thêm break
+                break;
             case GENRE:
             case TAG:
-                return getItemName(item); // Genre, Tag dùng Name
+                return getItemName(item);
         }
-        return null; // Trả về null nếu kiểu không khớp
+        return null;
     }
 
+    /** Populate FlowPane từ FilteredList (*** SỬA ĐỔI ĐỂ THÊM STYLE CLASS ***) */
     private void populateFlowPaneFromFilteredList() {
         selectionFlowPane.getChildren().clear();
         selectionToggleGroup.getToggles().clear();
@@ -277,7 +259,6 @@ public class MainController {
             TagModel tagModel = TagModel.parse(rawName);
             String userData = getUserData(item);
 
-            // Chỉ thêm vào FlowPane nếu userData hợp lệ
             if (userData != null) {
                 ToggleButton chipButton = new ToggleButton();
                 chipButton.setUserData(userData);
@@ -288,12 +269,21 @@ public class MainController {
                 tagView.getDeleteButton().setManaged(false);
 
                 chipButton.setGraphic(tagView);
-                chipButton.getStyleClass().add("chip-toggle-button");
+                chipButton.getStyleClass().add("chip-toggle-button"); // Class chung
+
+                // *** THÊM CLASS CSS CỤ THỂ CHO MÀU SẮC ***
+                if (tagModel.isJson()) {
+                    chipButton.getStyleClass().add("tag-view-json"); // Class cho JSON
+                } else {
+                    chipButton.getStyleClass().add("tag-view-simple"); // Class cho Simple
+                }
+                // *** KẾT THÚC THÊM CLASS ***
 
                 selectionFlowPane.getChildren().add(chipButton);
             }
         }
     }
+
 
     private String getDisplayNameFromToggle(Toggle toggle) {
         if (toggle instanceof ToggleButton) {
@@ -319,13 +309,13 @@ public class MainController {
         Thread thread = new Thread(() -> {
             try {
                 task.run();
-                // Không tự động báo thành công ở đây, để hàm gọi tự báo
+                // Không tự động báo thành công
             } catch (Exception e) {
                 String errorMsg = "LỖI khi thực thi " + taskName + ": " + e.getMessage();
-                System.err.println("\n!!! ĐÃ XẢY RA LỖI !!!"); // Log lỗi ra console để debug
+                System.err.println("\n!!! ĐÃ XẢY RA LỖI !!!");
                 e.printStackTrace();
-                updateStatus(errorMsg, false); // Kết thúc loading, báo lỗi
-                showAlert(Alert.AlertType.ERROR, "Lỗi Thực Thi", errorMsg); // Hiển thị lỗi trên UI
+                updateStatus(errorMsg, false);
+                showAlert(Alert.AlertType.ERROR, "Lỗi Thực Thi", errorMsg);
             } finally {
                 // Luôn tắt loading indicator trừ khi hàm gọi tự xử lý
                 // Platform.runLater(() -> statusIndicator.setVisible(false));
@@ -339,7 +329,6 @@ public class MainController {
     // --- Event Handlers ---
 
     @FXML private void handleLogout() {
-        // ... (Giữ nguyên) ...
         if (app != null) app.handleLogout();
         else {
             updateStatus("Lỗi: Không thể đăng xuất (app is null).");
@@ -352,10 +341,7 @@ public class MainController {
         loadCurrentTypeList();
     }
 
-    // --- Handlers cho Copy (SỬA LẠI ĐỂ LẤY ID TỪ TEXTFIELD) ---
-    // @FXML private void handleChooseCopyFromClick() { ... } // Xóa hàm này
-    // @FXML private void handleChooseCopyToClick() { ... } // Xóa hàm này
-
+    // --- Handlers cho Copy ---
     @FXML private void btnRunCopyClick() {
         // Lấy ID trực tiếp từ TextField
         String copyFromId = txtCopyFromItemID.getText();
@@ -365,8 +351,6 @@ public class MainController {
             showAlert(Alert.AlertType.WARNING, "Thiếu thông tin", "Vui lòng nhập ID Item Mẫu và ID Thư mục Đích.");
             return;
         }
-
-        // Trim ID trước khi sử dụng
         final String finalCopyFromId = copyFromId.trim();
         final String finalCopyToId = copyToId.trim();
 
@@ -394,13 +378,12 @@ public class MainController {
 
     // --- Handlers cho Xóa Theo Thư Mục ---
     @FXML private void btnRunClearParentClick() {
-        // ... (Giữ nguyên logic như lần trước) ...
         String parentId = txtClearByParentID.getText();
         if (parentId == null || parentId.trim().isEmpty()) {
             showAlert(Alert.AlertType.WARNING, "Thiếu thông tin", "Vui lòng nhập ID Thư mục Đích.");
             return;
         }
-        final String finalParentId = parentId.trim(); // Trim ID
+        final String finalParentId = parentId.trim();
         String taskName = "Xóa " + currentType.pluralName + " theo thư mục";
         runTask(taskName, () -> {
             boolean success = false;
@@ -424,7 +407,6 @@ public class MainController {
 
     // --- Handlers cho Xóa Cụ Thể ---
     @FXML private void btnRunClearSpecificClick() {
-        // ... (Giữ nguyên logic như lần trước) ...
         Toggle selectedToggle = selectionToggleGroup.getSelectedToggle();
         if (selectedToggle == null || selectedToggle.getUserData() == null) {
             showAlert(Alert.AlertType.WARNING, "Chưa chọn", "Vui lòng chọn một " + currentType.singularName + " từ danh sách.");
@@ -455,6 +437,4 @@ public class MainController {
         });
     }
 
-    // --- XÓA LỚP ItemSelectionResult ---
-    // private static class ItemSelectionResult { ... }
 }
