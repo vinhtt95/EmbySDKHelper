@@ -30,10 +30,36 @@ public class LoginController {
     @FXML
     private Label lblStatus;
 
+    // Khởi tạo ConfigService
+    private ConfigService configService = new ConfigService();
+
+    @FXML
+    public void initialize() {
+        // TẢI thông tin đăng nhập đã lưu
+        loadLoginInfo();
+    }
+
+    private void loadLoginInfo() {
+        txtServerAddress.setText(configService.getServerAddress());
+        txtApiKey.setText(configService.getApiKey());
+        txtUsername.setText(configService.getUsername());
+    }
+
     @FXML
     protected void onConnectButtonClick() {
         lblStatus.setText("Đang kết nối...");
         btnConnect.setDisable(true);
+
+        // LƯU thông tin đăng nhập
+        try {
+            configService.saveLoginInfo(
+                    txtServerAddress.getText().trim(),
+                    txtApiKey.getText().trim(),
+                    txtUsername.getText().trim()
+            );
+        } catch (Exception e) {
+            System.out.println("Lỗi khi lưu cài đặt: " + e.getMessage());
+        }
 
         // Chạy trên một luồng riêng để không làm treo GUI
         new Thread(() -> {
@@ -50,25 +76,20 @@ public class LoginController {
                 if (authenUserService.login()) {
                     // Thành công!
                     Configuration.setDefaultApiClient(apiClient);
-                    // LẤY USER ID SAU KHI LOGIN
                     String loggedInUserId = authenUserService.getUserId();
 
                     Platform.runLater(() -> {
                         lblStatus.setText("Kết nối thành công!");
-                        // TRUYỀN USER ID QUA HÀM NÀY
                         openMainWindow(loggedInUserId);
-                        // Đóng cửa sổ login
                         ((Stage) btnConnect.getScene().getWindow()).close();
                     });
                 } else {
-                    // Thất bại (login() trả về false)
                     Platform.runLater(() -> {
                         lblStatus.setText("Lỗi: Đăng nhập thất bại. Kiểm tra Username/Password.");
                         btnConnect.setDisable(false);
                     });
                 }
             } catch (Exception e) {
-                // Thất bại (Exception)
                 Platform.runLater(() -> {
                     lblStatus.setText("Lỗi: " + e.getMessage());
                     btnConnect.setDisable(false);
@@ -77,21 +98,19 @@ public class LoginController {
         }).start();
     }
 
-    // SỬA HÀM NÀY ĐỂ NHẬN USER ID
     private void openMainWindow(String userId) {
         try {
             FXMLLoader fxmlLoader = new FXMLLoader(HelloApplication.class.getResource("main-view.fxml"));
 
-            // THAY ĐỔI CHIỀU CAO VÀ RỘNG Ở ĐÂY
-            Scene scene = new Scene(fxmlLoader.load(), 900, 750);
+            // TẢI kích thước cửa sổ chính
+            double width = configService.getMainWindowWidth();
+            double height = configService.getMainWindowHeight();
 
-            // *** ĐOẠN QUAN TRỌNG ***
-            // LẤY MAIN CONTROLLER SAU KHI LOAD FXML
+            Scene scene = new Scene(fxmlLoader.load(), width, height);
+
             MainController mainController = fxmlLoader.getController();
-            // GỌI HÀM setUserId TRÊN MAIN CONTROLLER ĐỂ TRUYỀN ID QUA
             mainController.setUserId(userId);
 
-            // Áp dụng CSS
             String css = HelloApplication.class.getResource("style.css").toExternalForm();
             scene.getStylesheets().add(css);
 
@@ -99,6 +118,17 @@ public class LoginController {
             stage.setTitle("Emby Helper Dashboard");
             stage.setScene(scene);
             stage.show();
+
+            // LƯU kích thước cửa sổ chính khi thay đổi
+            stage.widthProperty().addListener((obs, oldVal, newVal) -> {
+                configService.saveMainWindowSize(stage.getWidth(), stage.getHeight());
+            });
+            stage.heightProperty().addListener((obs, oldVal, newVal) -> {
+                configService.saveMainWindowSize(stage.getWidth(), stage.getHeight());
+            });
+            stage.setOnCloseRequest(e -> {
+                configService.saveMainWindowSize(stage.getWidth(), stage.getHeight());
+            });
 
         } catch (IOException e) {
             e.printStackTrace();

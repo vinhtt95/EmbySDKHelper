@@ -8,7 +8,6 @@
 /* Kiểu chữ cho nhãn (Label) */
 .label {
     -fx-text-fill: #E0E0E0; /* Chữ màu sáng */
-    /* Xóa font-size ở đây để nó dùng font-size 18px của .root */
 }
 
 /* Kiểu cho nút bấm (Button) */
@@ -32,23 +31,34 @@
     -fx-background-radius: 5px;
 }
 
+/* ComboBox */
+.combo-box .list-cell {
+    -fx-background-color: #333333;
+    -fx-text-fill: #E0E0E0;
+}
+.combo-box-popup .list-view .list-cell:filled:hover {
+    -fx-background-color: #5C87B2;
+    -fx-text-fill: white;
+}
+.combo-box-popup .list-view .list-cell:filled:selected {
+    -fx-background-color: #5C87B2;
+    -fx-text-fill: white;
+}
+
 /* Kiểu cho TabPane */
 .tab-pane .tab-header-area .tab-header-background {
     -fx-background-color: #2A2A2A; /* Tối hơn */
 }
-
 .tab-pane .tab {
     -fx-background-color: #3A3A3A; /* Tối hơn */
     -fx-focus-color: transparent;
     -fx-faint-focus-color: transparent;
 }
-
 .tab-pane .tab:selected {
     -fx-background-color: #242424; /* Tab được chọn trùng màu nền root */
     -fx-border-color: #5C87B2;
     -fx-border-width: 0 0 3 0; /* Gạch chân màu xanh */
 }
-
 .tab .tab-label {
     -fx-text-fill: #E0E0E0;
     -fx-font-weight: bold;
@@ -61,6 +71,20 @@
     -fx-text-fill: #00FF00; /* Chữ màu xanh lá cây kiểu log */
     -fx-font-family: "Consolas", "Monaco", monospace;
 }
+/* *** FIX MENU CHUỘT PHẢI MÀU TRẮNG *** */
+.text-area .context-menu {
+    -fx-background-color: #333333;
+}
+.text-area .menu-item .label {
+    -fx-text-fill: #E0E0E0;
+}
+.text-area .menu-item:focused {
+    -fx-background-color: #5C87B2;
+}
+.text-area .menu-item:focused .label {
+    -fx-text-fill: white;
+}
+
 
 /* Kiểu cho TitledPane (khung chứa chức năng) */
 .titled-pane {
