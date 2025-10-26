@@ -249,7 +249,7 @@ public class TagService {
                         null    //nameLessThan
                 );
                 if (listItems.getItems().isEmpty()) {
-                    System.out.println("Empty Tags");
+                    System.out.println("Empty Item Tags");
                 }
 
                 if (!listItems.getItems().isEmpty()) {
