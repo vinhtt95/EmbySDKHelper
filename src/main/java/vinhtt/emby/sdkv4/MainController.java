@@ -1,5 +1,7 @@
 package vinhtt.emby.sdkv4;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import embyclient.model.BaseItemDto;
 import embyclient.model.UserLibraryTagItem;
 import javafx.application.Platform;
@@ -11,13 +13,22 @@ import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
+import javafx.stage.DirectoryChooser;
 import vinhtt.emby.sdkv4.service.*;
 import vinhtt.emby.sdkv4.ui.TagModel;
 import vinhtt.emby.sdkv4.ui.TagView;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 // Xóa import Predicate
+
+// === IMPORT MỚI ĐỂ SỬA LỖI JSON ===
+import java.time.OffsetDateTime;
+import embyclient.JSON.OffsetDateTimeTypeAdapter;
+// ===================================
 
 public class MainController {
 
@@ -33,6 +44,12 @@ public class MainController {
         MetadataType(String singular, String plural) { this.singularName = singular; this.pluralName = plural; }
         @Override public String toString() { return this.pluralName; }
     }
+
+    // --- Biến Gson để export JSON (ĐÃ SỬA ĐỂ FIX LỖI) ---
+    private static final Gson gson = new GsonBuilder()
+            .registerTypeAdapter(OffsetDateTime.class, new OffsetDateTimeTypeAdapter()) // <-- DÒNG SỬA LỖI
+            .setPrettyPrinting()
+            .create();
 
     // --- Tham chiếu HelloApplication ---
     private HelloApplication app;
@@ -61,6 +78,11 @@ public class MainController {
     @FXML private TextField txtClearByParentID;
     @FXML private Button btnRunClearParent;
 
+    // --- TitledPane Export JSON (MỚI) ---
+    @FXML private TitledPane exportJsonPane;
+    @FXML private TextField txtExportJsonParentID;
+    @FXML private Button btnRunExportJson;
+
     // --- TitledPane Xóa Cụ Thể ---
     @FXML private TitledPane clearSpecificPane;
     @FXML private Label clearSpecificLabel;
@@ -72,6 +94,7 @@ public class MainController {
     private final ToggleGroup selectionToggleGroup = new ToggleGroup();
 
     // --- Services ---
+    private ItemService itemService; // <-- THÊM DÒNG NÀY
     private StudioService studioService;
     private GenresService genresService;
     private PeopleService peopleService;
@@ -90,11 +113,13 @@ public class MainController {
 
     public void setUserId(String userId) {
         this.userId = userId;
-        ItemService itemService = new ItemService(this.userId);
-        this.studioService = new StudioService(itemService);
-        this.genresService = new GenresService(itemService);
-        this.peopleService = new PeopleService(itemService);
-        this.tagService = new TagService(itemService);
+        // --- SỬA CÁC DÒNG NÀY ---
+        this.itemService = new ItemService(this.userId); // Khởi tạo và lưu trữ itemService
+        this.studioService = new StudioService(this.itemService);
+        this.genresService = new GenresService(this.itemService);
+        this.peopleService = new PeopleService(this.itemService);
+        this.tagService = new TagService(this.itemService);
+        // --- KẾT THÚC SỬA ---
         updateStatus("Đã khởi tạo các service với UserId: " + userId);
         Platform.runLater(this::loadCurrentTypeList);
     }
@@ -135,8 +160,8 @@ public class MainController {
         updateStatus("Main Controller đã khởi tạo. Chọn loại Metadata để bắt đầu.");
     }
 
-    // --- Helper Methods (updateStatus, showAlert, updateUITexts, clearSelectionAndSearch, loadCurrentTypeList, applyFilter, getItemName, getUserData, getDisplayNameFromToggle, runTask) ---
-    // Giữ nguyên các hàm helper này như đã cung cấp ở lần trước
+    // --- Helper Methods (updateStatus, showAlert, updateUITexts, clearSelectionAndSearch, loadCurrentTypeList, applyFilter, getItemName, getUserData, getDisplayNameFromToggle) ---
+    // (Các hàm này giữ nguyên như cũ)
 
     private void updateStatus(String message) { updateStatus(message, false); }
     private void updateStatus(String message, boolean isLoading) {
@@ -160,6 +185,7 @@ public class MainController {
     }
 
     private void updateUITexts() {
+        // ... (Hàm này giữ nguyên) ...
         String singular = currentType.singularName.toLowerCase();
         String plural = currentType.pluralName;
 
@@ -175,12 +201,13 @@ public class MainController {
     }
 
     private void clearSelectionAndSearch() {
+        // ... (Hàm này giữ nguyên) ...
         selectionToggleGroup.selectToggle(null);
         searchField.clear();
-        // applyFilter("") sẽ được gọi bởi listener của searchField
     }
 
     private void loadCurrentTypeList() {
+        // ... (Hàm này giữ nguyên) ...
         String taskName = "Tải danh sách " + currentType.pluralName;
         runTask(taskName, () -> {
             updateStatus("Đang " + taskName.toLowerCase() + "...", true);
@@ -193,37 +220,36 @@ public class MainController {
                     case TAG:    rawList = tagService.getListTags(); break;
                 }
             } catch (Exception e) {
-                // Lỗi đã được xử lý trong runTask, chỉ cần log thêm nếu muốn
                 System.err.println("Lỗi API khi tải danh sách " + currentType.pluralName);
-                rawList = Collections.emptyList(); // Đảm bảo list không null
+                rawList = Collections.emptyList();
             }
 
-            final List<?> finalList = rawList != null ? rawList : Collections.emptyList(); // Đảm bảo không null
+            final List<?> finalList = rawList != null ? rawList : Collections.emptyList();
 
             Platform.runLater(() -> {
-                originalItemList.setAll(finalList); // Cập nhật danh sách gốc
-                // FilteredList tự động cập nhật
-                populateFlowPaneFromFilteredList(); // Cập nhật lại FlowPane từ FilteredList
+                originalItemList.setAll(finalList);
+                populateFlowPaneFromFilteredList();
                 updateStatus("Tải xong " + currentType.pluralName + ". (" + originalItemList.size() + " mục)", false);
             });
         });
     }
 
     private void applyFilter(String filterText) {
+        // ... (Hàm này giữ nguyên) ...
         String lowerCaseFilter = filterText == null ? "" : filterText.toLowerCase().trim();
 
         filteredItemList.setPredicate(item -> {
             if (lowerCaseFilter.isEmpty()) {
-                return true; // Hiển thị tất cả nếu filter rỗng
+                return true;
             }
             String itemName = getItemName(item);
             return itemName != null && itemName.toLowerCase().contains(lowerCaseFilter);
         });
-        // Cập nhật lại FlowPane sau khi filter thay đổi
         populateFlowPaneFromFilteredList();
     }
 
     private String getItemName(Object item) {
+        // ... (Hàm này giữ nguyên) ...
         if (item instanceof BaseItemDto) {
             return ((BaseItemDto) item).getName();
         } else if (item instanceof UserLibraryTagItem) {
@@ -233,6 +259,7 @@ public class MainController {
     }
 
     private String getUserData(Object item) {
+        // ... (Hàm này giữ nguyên) ...
         switch (currentType) {
             case STUDIO:
             case PEOPLE:
@@ -247,12 +274,12 @@ public class MainController {
         return null;
     }
 
-    /** Populate FlowPane từ FilteredList (*** SỬA ĐỔI ĐỂ THÊM STYLE CLASS ***) */
     private void populateFlowPaneFromFilteredList() {
+        // ... (Hàm này giữ nguyên) ...
         selectionFlowPane.getChildren().clear();
         selectionToggleGroup.getToggles().clear();
 
-        for (Object item : filteredItemList) { // Duyệt qua FilteredList
+        for (Object item : filteredItemList) {
             String rawName = getItemName(item);
             if (rawName == null || rawName.isEmpty()) continue;
 
@@ -269,15 +296,13 @@ public class MainController {
                 tagView.getDeleteButton().setManaged(false);
 
                 chipButton.setGraphic(tagView);
-                chipButton.getStyleClass().add("chip-toggle-button"); // Class chung
+                chipButton.getStyleClass().add("chip-toggle-button");
 
-                // *** THÊM CLASS CSS CỤ THỂ CHO MÀU SẮC ***
                 if (tagModel.isJson()) {
-                    chipButton.getStyleClass().add("tag-view-json"); // Class cho JSON
+                    chipButton.getStyleClass().add("tag-view-json");
                 } else {
-                    chipButton.getStyleClass().add("tag-view-simple"); // Class cho Simple
+                    chipButton.getStyleClass().add("tag-view-simple");
                 }
-                // *** KẾT THÚC THÊM CLASS ***
 
                 selectionFlowPane.getChildren().add(chipButton);
             }
@@ -286,6 +311,7 @@ public class MainController {
 
 
     private String getDisplayNameFromToggle(Toggle toggle) {
+        // ... (Hàm này giữ nguyên) ...
         if (toggle instanceof ToggleButton) {
             ToggleButton button = (ToggleButton) toggle;
             if (button.getGraphic() instanceof TagView) {
@@ -298,8 +324,9 @@ public class MainController {
     }
 
     private void runTask(String taskName, Runnable task) {
-        // ... (Giữ nguyên logic runTask) ...
-        if (studioService == null || genresService == null || peopleService == null || tagService == null) {
+        // --- SỬA DÒNG KIỂM TRA NÀY ---
+        if (studioService == null || genresService == null || peopleService == null || tagService == null || itemService == null) {
+            // --- KẾT THÚC SỬA ---
             updateStatus("LỖI: Services chưa được khởi tạo.");
             showAlert(Alert.AlertType.ERROR, "Lỗi Service", "Các service chưa sẵn sàng, vui lòng thử lại sau.");
             return;
@@ -316,9 +343,6 @@ public class MainController {
                 e.printStackTrace();
                 updateStatus(errorMsg, false);
                 showAlert(Alert.AlertType.ERROR, "Lỗi Thực Thi", errorMsg);
-            } finally {
-                // Luôn tắt loading indicator trừ khi hàm gọi tự xử lý
-                // Platform.runLater(() -> statusIndicator.setVisible(false));
             }
         });
         thread.setDaemon(true);
@@ -329,6 +353,7 @@ public class MainController {
     // --- Event Handlers ---
 
     @FXML private void handleLogout() {
+        // ... (Hàm này giữ nguyên) ...
         if (app != null) app.handleLogout();
         else {
             updateStatus("Lỗi: Không thể đăng xuất (app is null).");
@@ -337,13 +362,14 @@ public class MainController {
     }
 
     @FXML private void btnReloadListClick() {
+        // ... (Hàm này giữ nguyên) ...
         searchField.clear();
         loadCurrentTypeList();
     }
 
     // --- Handlers cho Copy ---
     @FXML private void btnRunCopyClick() {
-        // Lấy ID trực tiếp từ TextField
+        // ... (Hàm này giữ nguyên) ...
         String copyFromId = txtCopyFromItemID.getText();
         String copyToId = txtCopyToParentID.getText();
 
@@ -378,6 +404,7 @@ public class MainController {
 
     // --- Handlers cho Xóa Theo Thư Mục ---
     @FXML private void btnRunClearParentClick() {
+        // ... (Hàm này giữ nguyên) ...
         String parentId = txtClearByParentID.getText();
         if (parentId == null || parentId.trim().isEmpty()) {
             showAlert(Alert.AlertType.WARNING, "Thiếu thông tin", "Vui lòng nhập ID Thư mục Đích.");
@@ -407,6 +434,7 @@ public class MainController {
 
     // --- Handlers cho Xóa Cụ Thể ---
     @FXML private void btnRunClearSpecificClick() {
+        // ... (Hàm này giữ nguyên) ...
         Toggle selectedToggle = selectionToggleGroup.getSelectedToggle();
         if (selectedToggle == null || selectedToggle.getUserData() == null) {
             showAlert(Alert.AlertType.WARNING, "Chưa chọn", "Vui lòng chọn một " + currentType.singularName + " từ danh sách.");
@@ -435,6 +463,114 @@ public class MainController {
                 updateStatus("Lỗi khi " + taskName + ": " + e.getMessage(), false);
             }
         });
+    }
+
+    // --- (MỚI) Handlers cho Export JSON ---
+
+    /**
+     * Step 1, 2, 3: Lấy ParentID, Mở DirectoryChooser và gọi Task chạy nền
+     */
+    @FXML
+    private void btnRunExportJsonClick() {
+        // Step 1. Lấy ParentID
+        String parentId = txtExportJsonParentID.getText();
+        if (parentId == null || parentId.trim().isEmpty()) {
+            showAlert(Alert.AlertType.WARNING, "Thiếu thông tin", "Vui lòng nhập ID Thư mục Cha (Parent ID).");
+            return;
+        }
+        final String finalParentId = parentId.trim();
+
+        // Step 2. Mở DirectoryChooser (Phải chạy trên UI Thread)
+        DirectoryChooser directoryChooser = new DirectoryChooser();
+        directoryChooser.setTitle("Chọn thư mục để lưu file JSON");
+        File selectedDirectory = directoryChooser.showDialog(btnRunExportJson.getScene().getWindow());
+
+        if (selectedDirectory == null) {
+            updateStatus("Đã hủy: Người dùng không chọn thư mục.", false);
+            return;
+        }
+
+        // Step 3. Chạy Task nền
+        String taskName = "Export JSON từ Parent ID: " + finalParentId;
+        runTask(taskName, () -> {
+            // Hàm này chứa các Step 4, 5, 6 và chạy trên background thread
+            exportJsonTask(finalParentId, selectedDirectory);
+        });
+    }
+
+    /**
+     * Step 4, 5, 6: Lấy danh sách, lấy thông tin chi tiết và lưu file
+     * (Hàm này được gọi bởi runTask và chạy trên background thread)
+     */
+    private void exportJsonTask(String parentId, File directory) {
+        // Step 4. Lấy danh sách item con
+        updateStatus("Đang lấy danh sách item con từ Parent ID: " + parentId + "...", true);
+        // Lấy tất cả item con, đệ quy (recursive = true)
+        List<BaseItemDto> itemsToExport = itemService.getListItemByParentID(parentId, null, null, true);
+
+        if (itemsToExport == null || itemsToExport.isEmpty()) {
+            updateStatus("Không tìm thấy item con nào trong Parent ID: " + parentId, false);
+            showAlert(Alert.AlertType.INFORMATION, "Hoàn thành", "Không tìm thấy item con nào để export.");
+            return;
+        }
+
+        updateStatus("Tìm thấy " + itemsToExport.size() + " item. Bắt đầu export...", true);
+        int successCount = 0;
+        int errorCount = 0;
+        String directoryPath = directory.getAbsolutePath();
+
+        // Step 5. Vòng lặp: Lấy full info và lưu file
+        for (int i = 0; i < itemsToExport.size(); i++) {
+            BaseItemDto listItem = itemsToExport.get(i);
+            String itemId = listItem.getId();
+            String itemName = listItem.getName(); // Dùng Name làm tên dự phòng
+
+            if (itemId == null) {
+                System.err.println("Bỏ qua item vì không có ID: " + itemName);
+                errorCount++;
+                continue;
+            }
+
+            // Cập nhật status bar cho user biết tiến trình
+            updateStatus("Đang export: (" + (i + 1) + "/" + itemsToExport.size() + ") " + itemName, true);
+
+            try {
+                // Lấy thông tin đầy đủ của item
+                BaseItemDto fullItem = itemService.getInforItem(itemId);
+                if (fullItem == null) {
+                    System.err.println("Lỗi: Không thể lấy full info cho item ID: " + itemId);
+                    errorCount++;
+                    continue;
+                }
+
+                // Lấy OriginalTitle làm tên file
+                String originalTitle = fullItem.getOriginalTitle();
+                String baseFileName = (originalTitle != null && !originalTitle.isEmpty()) ? originalTitle : itemName;
+
+                // Làm sạch tên file (xóa các ký tự không hợp lệ)
+                String safeFileName = baseFileName.replaceAll("[^a-zA-Z0-9.-]", "_") + ".json";
+                File outputFile = new File(directoryPath, safeFileName);
+
+                // Ghi file JSON
+                try (FileWriter writer = new FileWriter(outputFile)) {
+                    gson.toJson(fullItem, writer); // Chuyển đổi DTO thành JSON và ghi ra file
+                    successCount++;
+                } catch (IOException ioEx) {
+                    System.err.println("Lỗi khi ghi file JSON: " + safeFileName + " - " + ioEx.getMessage());
+                    errorCount++;
+                }
+            } catch (Exception e) {
+                // Bắt các lỗi khác (vd: lỗi API khi getInforItem)
+                System.err.println("Lỗi nghiêm trọng khi xử lý item ID: " + itemId + " - " + e.getMessage());
+                e.printStackTrace();
+                errorCount++;
+            }
+        } // Kết thúc vòng lặp
+
+        // Step 6. Báo cáo kết quả
+        String finalMessage = "Hoàn thành export! Thành công: " + successCount + ", Lỗi: " + errorCount + ". Đã lưu tại: " + directoryPath;
+        updateStatus(finalMessage, false);
+        showAlert(Alert.AlertType.INFORMATION, "Export Hoàn tất", finalMessage);
     }
 
 }

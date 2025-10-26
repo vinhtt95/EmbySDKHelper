@@ -61,13 +61,31 @@
 
 /* ComboBox */
 .combo-box {
-    -fx-background-color: #333333;
-    -fx-text-fill: #e0e0e0;
+    -fx-background-color: #333333; /* Màu nền lớp ngoài */
     -fx-border-color: #444444;
     -fx-border-radius: 18px;
-    -fx-background-radius: 18px;
+    -fx-background-radius: 18px; /* Bo tròn lớp ngoài */
     -fx-font-size: 15px;
+    -fx-padding: 1px; /* Thêm padding nhỏ để viền không bị che */
 }
+
+/* Lớp nền chính bên trong */
+.combo-box .combo-box-base {
+    -fx-background-color: #333333; /* Đặt lại màu nền giống lớp ngoài */
+    -fx-background-radius: 18px; /* Bo tròn lớp nền */
+    -fx-border-radius: 18px;
+    -fx-border-color: transparent; /* Viền trong suốt */
+    -fx-padding: 0; /* Bỏ padding mặc định của base */
+}
+
+/* Ô hiển thị giá trị được chọn */
+.combo-box .list-cell {
+    -fx-background-color: transparent; /* Nền trong suốt để lộ lớp base đã bo tròn */
+    -fx-text-fill: #e0e0e0; /* Màu chữ */
+    -fx-padding: 8px 15px; /* Padding cho text */
+    /* Không cần bo tròn list-cell ở đây */
+}
+
 .combo-box .list-cell { /* Các mục trong danh sách thả xuống */
     -fx-background-color: #333333;
     -fx-text-fill: #e0e0e0;

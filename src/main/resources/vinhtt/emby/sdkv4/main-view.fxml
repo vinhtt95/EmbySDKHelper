@@ -43,14 +43,25 @@
                 </TitledPane>
                 <TitledPane fx:id="clearParentPane" animated="false" text="Xóa Hàng loạt theo Thư mục">
                     <content>
+
                         <VBox spacing="5.0">
                             <Label fx:id="clearParentLabel" text="ID Thư mục Đích (Xóa mọi [loại] trong thư mục này):" />
                             <TextField fx:id="txtClearByParentID" promptText="Nhập ID thư mục..." />
+
                             <Button fx:id="btnRunClearParent" onAction="#btnRunClearParentClick" text="Thực thi Xóa (Theo Thư mục)" />
                         </VBox>
                     </content>
                 </TitledPane>
 
+                <TitledPane fx:id="exportJsonPane" animated="false" text="Export JSON Hàng loạt">
+                    <content>
+                        <VBox spacing="8.0">
+                            <Label text="ID Thư mục Cha (Parent ID):" />
+                            <TextField fx:id="txtExportJsonParentID" promptText="Nhập ID thư mục cha..." />
+                            <Button fx:id="btnRunExportJson" onAction="#btnRunExportJsonClick" text="Chọn nơi lưu &amp; Bắt đầu Export" />
+                        </VBox>
+                    </content>
+                </TitledPane>
                 <TitledPane fx:id="clearSpecificPane" animated="false" text="Xóa Cụ Thể">
                     <content>
                         <VBox spacing="8.0">
@@ -61,17 +72,20 @@
                             </HBox>
                             <ScrollPane fx:id="selectionScrollPane" fitToWidth="true" prefHeight="250.0" styleClass="scroll-pane">
                                 <content>
+
                                     <FlowPane fx:id="selectionFlowPane" hgap="8.0" vgap="8.0">
                                         <padding><Insets top="5.0" bottom="5.0" left="5.0" right="5.0"/></padding>
                                     </FlowPane>
                                 </content>
                             </ScrollPane>
+
                             <Button fx:id="btnRunClearSpecific" onAction="#btnRunClearSpecificClick" text="Thực thi Xóa đã chọn" />
                         </VBox>
                     </content>
                 </TitledPane>
             </children>
         </VBox>
+
         <HBox fx:id="statusBar" alignment="CENTER_LEFT" spacing="10.0" styleClass="status-bar">
             <padding>
                 <Insets bottom="5.0" left="10.0" right="10.0" top="5.0"/>

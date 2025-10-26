@@ -144,7 +144,7 @@ public class ItemService {
                 );
 
                 if (result.getItems().isEmpty()) {
-                    System.out.println("No items found");
+                    System.out.println("Không có IDParent: " + parentID + ", startIndex: " + startIndex + ", limit: " + limit + ", recursive: " + recursive);
                 } else {
                     for (BaseItemDto each : result.getItems()) {
                         System.out.println(each.getName());
