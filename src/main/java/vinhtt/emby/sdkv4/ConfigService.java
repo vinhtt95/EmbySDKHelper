@@ -9,6 +9,12 @@ public class ConfigService {
     private static final String KEY_APIKEY = "apiKey";
     private static final String KEY_USERNAME = "username";
 
+    // --- THÊM CÁC KEY MỚI ---
+    private static final String KEY_ACCESS_TOKEN = "accessToken";
+    private static final String KEY_USER_ID = "userId";
+    // --- (Kết thúc thêm key) ---
+
+
     private static final String KEY_LOGIN_WIDTH = "loginWidth";
     private static final String KEY_LOGIN_HEIGHT = "loginHeight";
     private static final String KEY_MAIN_WIDTH = "mainWidth";
@@ -28,45 +34,47 @@ public class ConfigService {
         prefs.put(KEY_USERNAME, username);
     }
 
-    public String getServerAddress() {
-        return prefs.get(KEY_SERVER, "http://localhost:8096/emby");
+    // --- THÊM CÁC HÀM LƯU/TẢI SESSION ---
+    public void saveSession(String accessToken, String userId) {
+        prefs.put(KEY_ACCESS_TOKEN, accessToken != null ? accessToken : "");
+        prefs.put(KEY_USER_ID, userId != null ? userId : "");
+        try {
+            prefs.flush(); // Đảm bảo lưu ngay lập tức
+        } catch (Exception e) {
+            System.err.println("Lỗi flush preferences khi lưu session: " + e.getMessage());
+        }
     }
 
-    public String getApiKey() {
-        return prefs.get(KEY_APIKEY, "");
+    public String getAccessToken() {
+        return prefs.get(KEY_ACCESS_TOKEN, null); // Trả về null nếu không có
     }
 
-    public String getUsername() {
-        return prefs.get(KEY_USERNAME, "admin");
+    public String getUserId() {
+        return prefs.get(KEY_USER_ID, null); // Trả về null nếu không có
     }
 
-    // --- Login Window Size ---
-
-    public void saveLoginWindowSize(double width, double height) {
-        prefs.putDouble(KEY_LOGIN_WIDTH, width);
-        prefs.putDouble(KEY_LOGIN_HEIGHT, height);
+    public void clearSession() {
+        prefs.remove(KEY_ACCESS_TOKEN);
+        prefs.remove(KEY_USER_ID);
+        try {
+            prefs.flush();
+        } catch (Exception e) {
+            System.err.println("Lỗi flush preferences khi xóa session: " + e.getMessage());
+        }
+        System.out.println("Đã xóa session đã lưu.");
     }
+    // --- (Kết thúc thêm hàm session) ---
 
-    public double getLoginWindowWidth() {
-        return prefs.getDouble(KEY_LOGIN_WIDTH, 450); // Default
-    }
+    // Các hàm getServerAddress, getApiKey, getUsername không đổi...
+    public String getServerAddress() { return prefs.get(KEY_SERVER, "http://localhost:8096/emby"); }
+    public String getApiKey() { return prefs.get(KEY_APIKEY, ""); }
+    public String getUsername() { return prefs.get(KEY_USERNAME, "admin"); }
 
-    public double getLoginWindowHeight() {
-        return prefs.getDouble(KEY_LOGIN_HEIGHT, 500); // Default
-    }
-
-    // --- Main Window Size ---
-
-    public void saveMainWindowSize(double width, double height) {
-        prefs.putDouble(KEY_MAIN_WIDTH, width);
-        prefs.putDouble(KEY_MAIN_HEIGHT, height);
-    }
-
-    public double getMainWindowWidth() {
-        return prefs.getDouble(KEY_MAIN_WIDTH, 900); // Default
-    }
-
-    public double getMainWindowHeight() {
-        return prefs.getDouble(KEY_MAIN_HEIGHT, 750); // Default
-    }
+    // Các hàm lưu/tải kích thước cửa sổ không đổi...
+    public void saveLoginWindowSize(double width, double height) { /* ... */ }
+    public double getLoginWindowWidth() { /* ... */ return prefs.getDouble(KEY_LOGIN_WIDTH, 450); }
+    public double getLoginWindowHeight() { /* ... */ return prefs.getDouble(KEY_LOGIN_HEIGHT, 500); }
+    public void saveMainWindowSize(double width, double height) { /* ... */ }
+    public double getMainWindowWidth() { /* ... */ return prefs.getDouble(KEY_MAIN_WIDTH, 900); }
+    public double getMainWindowHeight() { /* ... */ return prefs.getDouble(KEY_MAIN_HEIGHT, 750); }
 }

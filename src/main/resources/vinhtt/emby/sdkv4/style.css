@@ -16,6 +16,7 @@
     -fx-text-fill: white;
     -fx-font-weight: bold;
     -fx-background-radius: 5px; /* Bo góc */
+    -fx-padding: 8px 15px; /* Thêm padding chuẩn */
 }
 
 .button:hover {
@@ -29,6 +30,7 @@
     -fx-border-color: #555555;
     -fx-border-radius: 5px;
     -fx-background-radius: 5px;
+    -fx-padding: 8px; /* Thêm padding chuẩn */
 }
 
 /* ComboBox */
@@ -71,7 +73,7 @@
     -fx-text-fill: #00FF00; /* Chữ màu xanh lá cây kiểu log */
     -fx-font-family: "Consolas", "Monaco", monospace;
 }
-/* *** FIX MENU CHUỘT PHẢI MÀU TRẮNG *** */
+/* FIX MENU CHUỘT PHẢI MÀU TRẮNG */
 .text-area .context-menu {
     -fx-background-color: #333333;
 }
@@ -102,4 +104,97 @@
     -fx-background-color: #2D2D2D; /* Tối hơn */
     -fx-padding: 10px;
     -fx-border-color: #333333;
+}
+
+/* --- STYLE CHO CHIP CHỌN (ToggleButton) --- */
+.chip-button {
+    -fx-background-color: #383838; /* Màu nền xám tối */
+    -fx-text-fill: #e0e0e0;       /* Chữ màu sáng */
+    -fx-background-radius: 15px; /* Bo tròn */
+    -fx-border-color: #555555;    /* Viền xám đậm hơn */
+    -fx-border-radius: 15px;    /* Bo tròn viền */
+    -fx-padding: 4px 10px 4px 10px; /* Padding bên trong chip */
+    -fx-font-size: 16px;        /* Cỡ chữ nhỏ hơn một chút */
+    -fx-cursor: hand;           /* Con trỏ hình bàn tay */
+    -fx-wrap-text: true;        /* Cho phép xuống dòng nếu text dài */
+    /* *** DÒNG LỖI ĐÃ BỊ XÓA *** */
+    /* -fx-pref-width: auto; */
+    -fx-min-width: 50px;        /* Chiều rộng tối thiểu */
+}
+
+.chip-button:hover {
+    -fx-background-color: #4a4a4a; /* Sáng hơn khi di chuột */
+}
+
+.chip-button:selected {
+    -fx-background-color: #5C87B2; /* Màu xanh khi được chọn */
+    -fx-border-color: #7AA0C6;    /* Viền sáng hơn khi được chọn */
+    -fx-text-fill: white;         /* Chữ trắng khi được chọn */
+    -fx-font-weight: bold;        /* In đậm khi được chọn */
+}
+
+.chip-button:selected:hover {
+    -fx-background-color: #7AA0C6; /* Sáng hơn nữa khi di chuột vào chip đã chọn */
+}
+/* --- (KẾT THÚC STYLE CHIP) --- */
+
+/* ScrollPane */
+.scroll-pane {
+    -fx-background-color: #1e1e1e; /* Nền tối cho scrollpane chứa chip */
+    -fx-background: #1e1e1e;
+    -fx-border-color: #3a3a3a;
+    -fx-border-radius: 5px;
+}
+.scroll-pane .flow-pane { /* Đảm bảo FlowPane bên trong trong suốt */
+    -fx-background-color: transparent;
+}
+
+/* ScrollBar */
+.scroll-bar .increment-button, .scroll-bar .decrement-button {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+.scroll-bar .increment-arrow, .scroll-bar .decrement-arrow {
+    -fx-shape: " ";
+}
+.scroll-bar:vertical .thumb, .scroll-bar:horizontal .thumb {
+    -fx-background-color: #444444;
+    -fx-background-radius: 5;
+    -fx-opacity: 0.0; /* Ẩn đi ban đầu */
+    -fx-transition: opacity 0.3s ease;
+}
+/* Hiện thanh cuộn khi di chuột vào ScrollPane hoặc ScrollBar */
+.scroll-pane:hover .scroll-bar:vertical .thumb,
+.scroll-pane:hover .scroll-bar:horizontal .thumb,
+.scroll-bar:vertical:hover .thumb,
+.scroll-bar:vertical:pressed .thumb,
+.scroll-bar:horizontal:hover .thumb,
+.scroll-bar:horizontal:pressed .thumb {
+    -fx-opacity: 0.8;
+}
+.scroll-bar:vertical, .scroll-bar:horizontal {
+    -fx-background-color: transparent; /* Nền thanh cuộn trong suốt */
+}
+
+/* MenuBar */
+.menu-bar {
+    -fx-background-color: #2A2A2A;
+}
+.menu-bar .label {
+    -fx-text-fill: #E0E0E0;
+}
+.menu:hover, .menu:showing {
+    -fx-background-color: #3A3A3A;
+}
+.menu-item .label {
+    -fx-text-fill: #E0E0E0;
+}
+.menu-item:focused {
+    -fx-background-color: #5C87B2;
+}
+.menu-item:focused .label {
+    -fx-text-fill: white;
+}
+.context-menu { /* Áp dụng cho cả context menu của menu bar */
+    -fx-background-color: #333333;
 }

@@ -1,21 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.geometry.Insets?>
-<?import javafx.scene.control.Button?>
-<?import javafx.scene.control.ComboBox?>
-<?import javafx.scene.control.Label?>
-<?import javafx.scene.control.Tab?>
-<?import javafx.scene.control.TabPane?>
-<?import javafx.scene.control.TextArea?>
-<?import javafx.scene.control.TextField?>
-<?import javafx.scene.control.TitledPane?>
-<?import javafx.scene.layout.BorderPane?>
-<?import javafx.scene.layout.HBox?>
-<?import javafx.scene.layout.Priority?>
-<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
 
 <VBox xmlns="http://javafx.com/javafx/20" xmlns:fx="http://javafx.com/fxml/1" fx:controller="vinhtt.emby.sdkv4.MainController">
     <children>
+        <MenuBar fx:id="menuBar">
+            <menus>
+                <Menu mnemonicParsing="false" text="Tệp">
+                    <items>
+                        <MenuItem fx:id="logoutMenuItem" mnemonicParsing="false" text="Đăng xuất" />
+                    </items>
+                </Menu>
+            </menus>
+        </MenuBar>
+
         <TabPane VBox.vgrow="ALWAYS" tabClosingPolicy="UNAVAILABLE">
             <Tab text="Quản lý Studio">
                 <content>
@@ -46,14 +46,19 @@
                         <TitledPane animated="false" text="Xóa Studio Cụ Thể">
                             <content>
                                 <VBox spacing="5.0">
-                                    <Label text="Chọn Studio (Xóa studio này khỏi MỌI item):" />
+                                    <Label text="Tìm và Chọn Studio cần xóa (Xóa studio này khỏi MỌI item):" />
                                     <HBox spacing="10.0">
-                                        <children>
-                                            <ComboBox fx:id="cmbStudio_ClearSpecific" promptText="Chọn Studio để xóa" HBox.hgrow="ALWAYS" />
-                                            <Button fx:id="btnStudio_ReloadList" onAction="#btnStudio_ReloadListClick" text="Tải lại" />
-                                        </children>
+                                        <TextField fx:id="studioSearchField" promptText="Tìm tên studio..." HBox.hgrow="ALWAYS"/>
+                                        <Button fx:id="btnStudio_ReloadList" onAction="#btnStudio_ReloadListClick" text="Tải lại/Xóa tìm"/>
                                     </HBox>
-                                    <Button fx:id="btnStudio_RunClearSpecific" onAction="#btnStudio_RunClearSpecificClick" text="Thực thi Xóa Studio (Cụ thể)" />
+                                    <ScrollPane fx:id="studioScrollPane" fitToWidth="true" prefHeight="200.0" styleClass="scroll-pane">
+                                        <content>
+                                            <FlowPane fx:id="studioSelectionFlowPane" hgap="8.0" vgap="8.0">
+                                                <padding><Insets top="5.0" bottom="5.0" left="5.0" right="5.0"/></padding>
+                                            </FlowPane>
+                                        </content>
+                                    </ScrollPane>
+                                    <Button fx:id="btnStudio_RunClearSpecific" onAction="#btnStudio_RunClearSpecificClick" text="Thực thi Xóa Studio đã chọn" />
                                 </VBox>
                             </content>
                         </TitledPane>
@@ -90,14 +95,19 @@
                         <TitledPane animated="false" text="Xóa Genres Cụ Thể">
                             <content>
                                 <VBox spacing="5.0">
-                                    <Label text="Chọn Genres (Xóa genres này khỏi MỌI item):" />
+                                    <Label text="Tìm và Chọn Genres cần xóa (Xóa genres này khỏi MỌI item):" />
                                     <HBox spacing="10.0">
-                                        <children>
-                                            <ComboBox fx:id="cmbGenres_ClearSpecific" promptText="Chọn Genres để xóa" HBox.hgrow="ALWAYS" />
-                                            <Button fx:id="btnGenres_ReloadList" onAction="#btnGenres_ReloadListClick" text="Tải lại" />
-                                        </children>
+                                        <TextField fx:id="genresSearchField" promptText="Tìm tên genres..." HBox.hgrow="ALWAYS"/>
+                                        <Button fx:id="btnGenres_ReloadList" onAction="#btnGenres_ReloadListClick" text="Tải lại/Xóa tìm"/>
                                     </HBox>
-                                    <Button fx:id="btnGenres_RunClearSpecific" onAction="#btnGenres_RunClearSpecificClick" text="Thực thi Xóa Genres (Cụ thể)" />
+                                    <ScrollPane fx:id="genresScrollPane" fitToWidth="true" prefHeight="200.0" styleClass="scroll-pane">
+                                        <content>
+                                            <FlowPane fx:id="genresSelectionFlowPane" hgap="8.0" vgap="8.0">
+                                                <padding><Insets top="5.0" bottom="5.0" left="5.0" right="5.0"/></padding>
+                                            </FlowPane>
+                                        </content>
+                                    </ScrollPane>
+                                    <Button fx:id="btnGenres_RunClearSpecific" onAction="#btnGenres_RunClearSpecificClick" text="Thực thi Xóa Genres đã chọn" />
                                 </VBox>
                             </content>
                         </TitledPane>
@@ -134,14 +144,19 @@
                         <TitledPane animated="false" text="Xóa People Cụ Thể">
                             <content>
                                 <VBox spacing="5.0">
-                                    <Label text="Chọn People (Xóa people này khỏi MỌI item):" />
+                                    <Label text="Tìm và Chọn People cần xóa (Xóa people này khỏi MỌI item):" />
                                     <HBox spacing="10.0">
-                                        <children>
-                                            <ComboBox fx:id="cmbPeople_ClearSpecific" promptText="Chọn People để xóa" HBox.hgrow="ALWAYS" />
-                                            <Button fx:id="btnPeople_ReloadList" onAction="#btnPeople_ReloadListClick" text="Tải lại" />
-                                        </children>
+                                        <TextField fx:id="peopleSearchField" promptText="Tìm tên người..." HBox.hgrow="ALWAYS"/>
+                                        <Button fx:id="btnPeople_ReloadList" onAction="#btnPeople_ReloadListClick" text="Tải lại/Xóa tìm"/>
                                     </HBox>
-                                    <Button fx:id="btnPeople_RunClearSpecific" onAction="#btnPeople_RunClearSpecificClick" text="Thực thi Xóa People (Cụ thể)" />
+                                    <ScrollPane fx:id="peopleScrollPane" fitToWidth="true" prefHeight="200.0" styleClass="scroll-pane">
+                                        <content>
+                                            <FlowPane fx:id="peopleSelectionFlowPane" hgap="8.0" vgap="8.0">
+                                                <padding><Insets top="5.0" bottom="5.0" left="5.0" right="5.0"/></padding>
+                                            </FlowPane>
+                                        </content>
+                                    </ScrollPane>
+                                    <Button fx:id="btnPeople_RunClearSpecific" onAction="#btnPeople_RunClearSpecificClick" text="Thực thi Xóa People đã chọn" />
                                 </VBox>
                             </content>
                         </TitledPane>
@@ -178,14 +193,19 @@
                         <TitledPane animated="false" text="Xóa Tags Cụ Thể">
                             <content>
                                 <VBox spacing="5.0">
-                                    <Label text="Chọn Tag (Xóa tag này khỏi MỌI item):" />
+                                    <Label text="Tìm và Chọn Tag cần xóa (Xóa tag này khỏi MỌI item):" />
                                     <HBox spacing="10.0">
-                                        <children>
-                                            <ComboBox fx:id="cmbTags_ClearSpecific" promptText="Chọn Tag để xóa" HBox.hgrow="ALWAYS" />
-                                            <Button fx:id="btnTags_ReloadList" onAction="#btnTags_ReloadListClick" text="Tải lại" />
-                                        </children>
+                                        <TextField fx:id="tagsSearchField" promptText="Tìm tên tag..." HBox.hgrow="ALWAYS"/>
+                                        <Button fx:id="btnTags_ReloadList" onAction="#btnTags_ReloadListClick" text="Tải lại/Xóa tìm"/>
                                     </HBox>
-                                    <Button fx:id="btnTags_RunClearSpecific" onAction="#btnTags_RunClearSpecificClick" text="Thực thi Xóa Tags (Cụ thể)" />
+                                    <ScrollPane fx:id="tagsScrollPane" fitToWidth="true" prefHeight="200.0" styleClass="scroll-pane">
+                                        <content>
+                                            <FlowPane fx:id="tagsSelectionFlowPane" hgap="8.0" vgap="8.0">
+                                                <padding><Insets top="5.0" bottom="5.0" left="5.0" right="5.0"/></padding>
+                                            </FlowPane>
+                                        </content>
+                                    </ScrollPane>
+                                    <Button fx:id="btnTags_RunClearSpecific" onAction="#btnTags_RunClearSpecificClick" text="Thực thi Xóa Tags đã chọn" />
                                 </VBox>
                             </content>
                         </TitledPane>
