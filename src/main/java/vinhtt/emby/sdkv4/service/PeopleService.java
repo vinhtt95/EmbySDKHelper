@@ -356,7 +356,7 @@ public class PeopleService {
                 itemDto = this.itemService.getInforItem(eachItemOfPeople.getId());
 
                 if (itemDto != null) {
-                    itemDto.getPeople().clear();
+                    itemDto.getPeople().removeIf(person -> person.getId() != null && person.getId().equals(studioId));
 
                     // Dùng this.itemService
                     if(this.itemService.updateInforItem(eachItemOfPeople.getId(),itemDto)) {

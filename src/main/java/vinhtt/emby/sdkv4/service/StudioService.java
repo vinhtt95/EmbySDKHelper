@@ -303,7 +303,12 @@ public class StudioService {
                 itemDto = this.itemService.getInforItem(eachItemOfStudio.getId());
 
                 if (itemDto != null) {
-                    itemDto.getStudios().clear();
+                    List<NameLongIdPair> listStudios = itemDto.getStudios();
+
+
+                    listStudios.removeIf(eachStudio -> eachStudio.getId().equals(Long.parseLong(studioId)));
+
+//                    itemDto.getStudios().removeIf(studio -> studio.getId() != null && studio.getId().equals(studioId));
 
                     // Dùng this.itemService
                     if(this.itemService.updateInforItem(eachItemOfStudio.getId(),itemDto)) {

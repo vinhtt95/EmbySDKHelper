@@ -280,7 +280,7 @@ public class TagService {
                 itemDto = this.itemService.getInforItem(eachItemOfTagName.getId());
 
                 if (itemDto != null) {
-                    itemDto.getTagItems().clear();
+                    itemDto.getTagItems().removeIf(tag -> tag.getName() != null && tag.getName().equals(tagName));
 
                     // Dùng this.itemService
                     if(this.itemService.updateInforItem(eachItemOfTagName.getId(),itemDto)) {

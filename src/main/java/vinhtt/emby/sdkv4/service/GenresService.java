@@ -311,7 +311,7 @@ public class GenresService {
 
             if (item != null) {
 //                System.out.println(item.getGenreItems());
-                item.getGenreItems().clear();
+                item.getGenreItems().removeIf(genre -> genre.getName() != null && genre.getName().equals(nameGenres));
 
                 // Dùng this.itemService
                 if (this.itemService.updateInforItem(eachItem.getId(), item)) {
