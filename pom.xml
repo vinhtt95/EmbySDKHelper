@@ -13,6 +13,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <junit.version>5.12.1</junit.version>
         <emby.sdk.version>1.0.1</emby.sdk.version>
+        <gson.version>2.10.1</gson.version>
     </properties>
 
     <dependencies>
@@ -44,6 +45,12 @@
             <artifactId>eemby-sdk-java</artifactId>
             <version>${emby.sdk.version}</version>
         </dependency>
+
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>${gson.version}</version>
+        </dependency>
     </dependencies>
 
     <build>
@@ -63,10 +70,9 @@
                 <version>0.0.8</version>
                 <executions>
                     <execution>
-                        <!-- Default configuration for running with: mvn clean javafx:run -->
                         <id>default-cli</id>
                         <configuration>
-                            <mainClass>vinhtt.emby.sdkv4/vinhtt.emby.sdkv4.HelloApplication</mainClass>
+                            <mainClass>vinhtt.emby.sdkv4/vinhtt.emby.sdkv4.Launcher</mainClass>
                             <launcher>app</launcher>
                             <jlinkZipName>app</jlinkZipName>
                             <jlinkImageName>app</jlinkImageName>

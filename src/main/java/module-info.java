@@ -3,7 +3,8 @@ module vinhtt.emby.sdkv4 {
     requires javafx.fxml;
     requires eemby.sdk.java;
     requires java.sql;
-    requires java.prefs; // <--- THÊM DÒNG NÀY VÀO ĐÂY
+    requires java.prefs;
+    requires com.google.gson; // <--- THÊM DÒNG NÀY VÀO ĐÂY
 
 
     opens vinhtt.emby.sdkv4 to javafx.fxml;
