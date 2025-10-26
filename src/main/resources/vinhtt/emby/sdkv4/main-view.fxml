@@ -31,24 +31,16 @@
                 <TitledPane fx:id="copyPane" animated="false" text="Copy Hàng loạt">
                     <content>
                         <VBox spacing="8.0">
-                            <Label text="Item Mẫu (Copy từ đây):" />
-                            <HBox spacing="5.0">
-                                <TextField fx:id="txtCopyFromInfo" editable="false" promptText="Chưa chọn item mẫu" HBox.hgrow="ALWAYS"/>
-                                <TextField fx:id="txtCopyFromItemID" visible="false" managed="false"/>
-                                <Button fx:id="btnChooseCopyFrom" text="Chọn..." onAction="#handleChooseCopyFromClick"/>
-                            </HBox>
+                            <Label text="ID Item Mẫu (Copy từ đây):" />
+                            <TextField fx:id="txtCopyFromItemID" promptText="Nhập ID item mẫu..." />
 
-                            <Label text="Thư mục Đích (Paste vào đây):" />
-                            <HBox spacing="5.0">
-                                <TextField fx:id="txtCopyToInfo" editable="false" promptText="Chưa chọn thư mục đích" HBox.hgrow="ALWAYS"/>
-                                <TextField fx:id="txtCopyToParentID" visible="false" managed="false"/>
-                                <Button fx:id="btnChooseCopyTo" text="Chọn..." onAction="#handleChooseCopyToClick"/>
-                            </HBox>
+                            <Label text="ID Thư mục Đích (Paste vào đây):" />
+                            <TextField fx:id="txtCopyToParentID" promptText="Nhập ID thư mục đích..." />
+
                             <Button fx:id="btnRunCopy" onAction="#btnRunCopyClick" text="Thực thi Copy" />
                         </VBox>
                     </content>
                 </TitledPane>
-
                 <TitledPane fx:id="clearParentPane" animated="false" text="Xóa Hàng loạt theo Thư mục">
                     <content>
                         <VBox spacing="5.0">
