@@ -5,11 +5,14 @@ import embyclient.ApiException;
 import embyclient.api.UserServiceApi;
 
 public class AuthenUserService {
-    private String username = "admin";
-    // Password Emby on Mac
-//    private String password = "123456";
-    // Password Emby on Windows
-    private String password = "123@123a";
+    // XÓA 2 DÒNG USERNAME/PASSWORD CỐ ĐỊNH NÀY
+    // private String username = "admin";
+    // private String password = "123@123a";
+
+    // THÊM 2 DÒNG NÀY ĐỂ NHẬN GIÁ TRỊ TỪ LOGIN
+    private String username;
+    private String password;
+
     private String serverId = "";
     private String userId = "";
 
@@ -17,8 +20,11 @@ public class AuthenUserService {
 
     private embyclient.model.AuthenticationAuthenticationResult authenticateUser;
 
-    public AuthenUserService(ApiClient apiClient) {
+    // SỬA HÀM KHỞI TẠO (CONSTRUCTOR) TỪ 1 THAM SỐ THÀNH 3 THAM SỐ
+    public AuthenUserService(ApiClient apiClient, String username, String password) {
         this.apiClient = apiClient;
+        this.username = username; // THÊM DÒNG NÀY
+        this.password = password; // THÊM DÒNG NÀY
     }
 
     public boolean login() {
@@ -27,9 +33,12 @@ public class AuthenUserService {
 
         UserServiceApi userServiceApi = new UserServiceApi(apiClient);
         embyclient.model.AuthenticateUserByName body = new embyclient.model.AuthenticateUserByName();
-            body.setUsername(username);
-            body.setPw(password);
-            String XEmbyAuthorization = "Emby UserId=\"e8837bc1-ad67-520e-8cd2-f629e3155721\", Client=\"Android\", Device=\"Samsung Galaxy SIII\", DeviceId=\"xxx\", Version=\"1.0.0.0\"";
+
+        // SỬA 2 DÒNG NÀY ĐỂ DÙNG BIẾN CỦA CLASS
+        body.setUsername(this.username);
+        body.setPw(this.password);
+
+        String XEmbyAuthorization = "Emby UserId=\"e8837bc1-ad67-520e-8cd2-f629e3155721\", Client=\"Android\", Device=\"Samsung Galaxy SIII\", DeviceId=\"xxx\", Version=\"1.0.0.0\"";
         try {
             authenticateUser = userServiceApi.postUsersAuthenticatebyname(body, XEmbyAuthorization);
             if (authenticateUser != null) {

@@ -13,8 +13,12 @@ import java.util.List;
 public class GenresService {
 
     private GenresServiceApi genresServiceApi;
-    public GenresService() {
+    private ItemService itemService; // Thêm dòng này
+
+    // Sửa hàm khởi tạo
+    public GenresService(ItemService itemService) {
         genresServiceApi = new GenresServiceApi(Configuration.getDefaultApiClient());
+        this.itemService = itemService; // Gán ItemService
     }
 
     /**
@@ -22,6 +26,7 @@ public class GenresService {
      * @return
      */
     public  List<BaseItemDto> getListGenres() {
+        // ... (Không thay đổi gì ở hàm này) ...
         List<BaseItemDto> result = new ArrayList<>();
 
         if (genresServiceApi != null) {
@@ -128,13 +133,13 @@ public class GenresService {
                         null	//nameLessThan
                 );
                 /*
-                * List trống*/
+                 * List trống*/
                 if (listItems.getItems().isEmpty()) {
                     System.out.println("Emty Genres");
                 }
 
                 /*
-                * List có item trả về*/
+                 * List có item trả về*/
                 if (!listItems.getItems().isEmpty()) {
 
                     return listItems.getItems();
@@ -159,6 +164,7 @@ public class GenresService {
      * @return
      */
     public List<BaseItemDto> getListItemByGenreId(String nameGenres, Integer startIndex, Integer limit, boolean recursive) {
+        // ... (Không thay đổi gì ở hàm này) ...
         ItemsServiceApi itemsServiceApi = new ItemsServiceApi(Configuration.getDefaultApiClient());
 
         if (genresServiceApi != null) {
@@ -295,17 +301,20 @@ public class GenresService {
             return;
         }
 
-        ItemService itemService = new ItemService();
+        // Bỏ dòng này
+        // ItemService itemService = new ItemService();
 
         BaseItemDto item = null;
         for (BaseItemDto eachItem : listItem) {
-            item = itemService.getInforItem(eachItem.getId());
+            // Dùng this.itemService
+            item = this.itemService.getInforItem(eachItem.getId());
 
             if (item != null) {
 //                System.out.println(item.getGenreItems());
                 item.getGenreItems().clear();
 
-                if (itemService.updateInforItem(eachItem.getId(), item)) {
+                // Dùng this.itemService
+                if (this.itemService.updateInforItem(eachItem.getId(), item)) {
                     System.out.println("Update success " + eachItem.getName());
                 }
             }
@@ -318,8 +327,10 @@ public class GenresService {
      * @param parentID
      */
     public void copyGenres(String itemCopyID, String parentID) {
-        ItemService itemService = new ItemService();
-        BaseItemDto itemCopy = itemService.getInforItem(itemCopyID);
+        // Bỏ dòng này
+        // ItemService itemService = new ItemService();
+        // Dùng this.itemService
+        BaseItemDto itemCopy = this.itemService.getInforItem(itemCopyID);
 
         if(itemCopy == null){
             System.out.println("Not found item copy");
@@ -332,7 +343,8 @@ public class GenresService {
             }
         }
 
-        List<BaseItemDto> listItemPaste = itemService.getListItemByParentID(parentID, null, null, true);
+        // Dùng this.itemService
+        List<BaseItemDto> listItemPaste = this.itemService.getListItemByParentID(parentID, null, null, true);
         if (listItemPaste == null) {
             System.out.println("Not found item paste");
             return;
@@ -341,7 +353,8 @@ public class GenresService {
         BaseItemDto itemPaste = null;
         for (BaseItemDto eachItemPaste : listItemPaste) {
             System.out.println("ID: " + eachItemPaste.getId()+ " Name: " + eachItemPaste.getName());
-            itemPaste = itemService.getInforItem(eachItemPaste.getId());
+            // Dùng this.itemService
+            itemPaste = this.itemService.getInforItem(eachItemPaste.getId());
 
             List<NameLongIdPair> listGenresItemPaste = itemPaste.getGenreItems();
 
@@ -353,7 +366,8 @@ public class GenresService {
                 System.out.println(eachGenresPaste.toString());
             }
 
-            if(itemService.updateInforItem(itemPaste.getId(),itemPaste)) {
+            // Dùng this.itemService
+            if(this.itemService.updateInforItem(itemPaste.getId(),itemPaste)) {
                 System.out.println("Update success "+eachItemPaste.getName());
             }
         }
@@ -364,9 +378,11 @@ public class GenresService {
      * @param parentID
      */
     public void clearGenresByParentID(String parentID) {
-        ItemService itemService = new ItemService();
+        // Bỏ dòng này
+        // ItemService itemService = new ItemService();
 
-        List<BaseItemDto> listItem = itemService.getListItemByParentID(parentID, null, null, true);
+        // Dùng this.itemService
+        List<BaseItemDto> listItem = this.itemService.getListItemByParentID(parentID, null, null, true);
         if (listItem == null) {
             System.out.println("Not found item");
             return;
@@ -375,10 +391,12 @@ public class GenresService {
         BaseItemDto itemPaste = null;
         for (BaseItemDto eachItem : listItem) {
             System.out.println("ID: " + eachItem.getId()+ " Name: " + eachItem.getName());
-            itemPaste = itemService.getInforItem(eachItem.getId());
+            // Dùng this.itemService
+            itemPaste = this.itemService.getInforItem(eachItem.getId());
             itemPaste.getGenreItems().clear();
 
-            if(itemService.updateInforItem(itemPaste.getId(),itemPaste)) {
+            // Dùng this.itemService
+            if(this.itemService.updateInforItem(itemPaste.getId(),itemPaste)) {
                 System.out.println("Update success "+eachItem.getName());
             }
         }

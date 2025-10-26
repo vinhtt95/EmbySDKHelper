@@ -12,15 +12,19 @@ import java.util.function.UnaryOperator;
 
 public class StudioService {
     private StudiosServiceApi studiosServiceApi;
+    private ItemService itemService; // Thêm dòng này
 
-    public StudioService() {
+    // Sửa hàm khởi tạo
+    public StudioService(ItemService itemService) {
         studiosServiceApi = new StudiosServiceApi(Configuration.getDefaultApiClient());
+        this.itemService = itemService; // Gán ItemService
     }
 
     /**
      * @return Danh sách toàn bộ studio
      */
     public List<BaseItemDto> getListStudios() {
+        // ... (Không thay đổi gì ở hàm này) ...
         Boolean recursive = true;
 
         if (studiosServiceApi != null) {
@@ -155,7 +159,7 @@ public class StudioService {
      * @return
      */
     public List<BaseItemDto> getListItemByStudioId(String studioId, Integer startIndex, Integer limit, boolean recursive) {
-
+        // ... (Không thay đổi gì ở hàm này) ...
         ItemsServiceApi itemsServiceApi = new ItemsServiceApi(Configuration.getDefaultApiClient());
 
         if (studiosServiceApi != null) {
@@ -287,21 +291,22 @@ public class StudioService {
      * @param studioId ID của Studio cần xóa
      */
     public void clearStudio(String studioId) {
-
-        ItemService itemService = new ItemService();
+        // Bỏ dòng này
+        // ItemService itemService = new ItemService();
 
         List<BaseItemDto> listStudioBy = getListItemByStudioId(studioId, null, null, true);
 
         if (listStudioBy != null) {
             BaseItemDto itemDto = null;
             for (BaseItemDto eachItemOfStudio : listStudioBy) {
-
-                itemDto = itemService.getInforItem(eachItemOfStudio.getId());
+                // Dùng this.itemService
+                itemDto = this.itemService.getInforItem(eachItemOfStudio.getId());
 
                 if (itemDto != null) {
                     itemDto.getStudios().clear();
 
-                    if(itemService.updateInforItem(eachItemOfStudio.getId(),itemDto)) {
+                    // Dùng this.itemService
+                    if(this.itemService.updateInforItem(eachItemOfStudio.getId(),itemDto)) {
                         System.out.println("Update success "+eachItemOfStudio.getName());
                     }
                 }
@@ -315,8 +320,10 @@ public class StudioService {
      * @param parentID ID của folder chứa các item cần sao chép studio từ item mẫu
      */
     public void copyStudio(String itemCopyID, String parentID) {
-        ItemService itemService = new ItemService();
-        BaseItemDto itemCopy = itemService.getInforItem(itemCopyID);
+        // Bỏ dòng này
+        // ItemService itemService = new ItemService();
+        // Dùng this.itemService
+        BaseItemDto itemCopy = this.itemService.getInforItem(itemCopyID);
 
         if(itemCopy == null){
             System.out.println("Not found item copy");
@@ -329,7 +336,8 @@ public class StudioService {
             }
         }
 
-        List<BaseItemDto> listItemPaste = itemService.getListItemByParentID(parentID, null, null, true);
+        // Dùng this.itemService
+        List<BaseItemDto> listItemPaste = this.itemService.getListItemByParentID(parentID, null, null, true);
         if (listItemPaste == null) {
             System.out.println("Not found item paste");
             return;
@@ -338,7 +346,8 @@ public class StudioService {
         BaseItemDto itemPaste = null;
         for (BaseItemDto eachItemPaste : listItemPaste) {
             System.out.println("ID: " + eachItemPaste.getId()+ " Name: " + eachItemPaste.getName());
-            itemPaste = itemService.getInforItem(eachItemPaste.getId());
+            // Dùng this.itemService
+            itemPaste = this.itemService.getInforItem(eachItemPaste.getId());
 
             List<NameLongIdPair> listStudioItemPaste = itemPaste.getStudios();
 
@@ -350,7 +359,8 @@ public class StudioService {
                 System.out.println(eachStudioPaste.toString());
             }
 
-            if(itemService.updateInforItem(itemPaste.getId(),itemPaste)) {
+            // Dùng this.itemService
+            if(this.itemService.updateInforItem(itemPaste.getId(),itemPaste)) {
                 System.out.println("Update success "+eachItemPaste.getName());
             }
         }
@@ -361,9 +371,11 @@ public class StudioService {
      * @param parentID
      */
     public void clearStudioByParentID(String parentID) {
-        ItemService itemService = new ItemService();
+        // Bỏ dòng này
+        // ItemService itemService = new ItemService();
 
-        List<BaseItemDto> listItem = itemService.getListItemByParentID(parentID, null, null, true);
+        // Dùng this.itemService
+        List<BaseItemDto> listItem = this.itemService.getListItemByParentID(parentID, null, null, true);
         if (listItem == null) {
             System.out.println("Not found item");
             return;
@@ -372,10 +384,12 @@ public class StudioService {
         BaseItemDto itemPaste = null;
         for (BaseItemDto eachItem : listItem) {
             System.out.println("ID: " + eachItem.getId()+ " Name: " + eachItem.getName());
-            itemPaste = itemService.getInforItem(eachItem.getId());
+            // Dùng this.itemService
+            itemPaste = this.itemService.getInforItem(eachItem.getId());
             itemPaste.getStudios().clear();
 
-            if(itemService.updateInforItem(itemPaste.getId(),itemPaste)) {
+            // Dùng this.itemService
+            if(this.itemService.updateInforItem(itemPaste.getId(),itemPaste)) {
                 System.out.println("Update success "+eachItem.getName());
             }
         }

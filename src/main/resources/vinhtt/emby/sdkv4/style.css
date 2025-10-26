@@ -1,0 +1,81 @@
+/* Giao diện Dark Mode tổng thể */
+.root {
+    -fx-background-color: #242424; /* Nền tối hơn */
+    -fx-font-family: "Segoe UI", Arial, sans-serif;
+    -fx-font-size: 18px; /* TĂNG FONT CHỮ LÊN 18 */
+}
+
+/* Kiểu chữ cho nhãn (Label) */
+.label {
+    -fx-text-fill: #E0E0E0; /* Chữ màu sáng */
+    /* Xóa font-size ở đây để nó dùng font-size 18px của .root */
+}
+
+/* Kiểu cho nút bấm (Button) */
+.button {
+    -fx-background-color: #5C87B2; /* Màu xanh nhấn của Emby */
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-radius: 5px; /* Bo góc */
+}
+
+.button:hover {
+    -fx-background-color: #7AA0C6; /* Màu khi di chuột */
+}
+
+/* Ô nhập liệu (TextField, PasswordField) */
+.text-field, .password-field {
+    -fx-background-color: #333333; /* Tối hơn */
+    -fx-text-fill: #FFFFFF;
+    -fx-border-color: #555555;
+    -fx-border-radius: 5px;
+    -fx-background-radius: 5px;
+}
+
+/* Kiểu cho TabPane */
+.tab-pane .tab-header-area .tab-header-background {
+    -fx-background-color: #2A2A2A; /* Tối hơn */
+}
+
+.tab-pane .tab {
+    -fx-background-color: #3A3A3A; /* Tối hơn */
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+}
+
+.tab-pane .tab:selected {
+    -fx-background-color: #242424; /* Tab được chọn trùng màu nền root */
+    -fx-border-color: #5C87B2;
+    -fx-border-width: 0 0 3 0; /* Gạch chân màu xanh */
+}
+
+.tab .tab-label {
+    -fx-text-fill: #E0E0E0;
+    -fx-font-weight: bold;
+}
+
+/* Kiểu cho khu vực Log (TextArea) */
+.text-area {
+    -fx-background-color: #1F1F1F; /* Tối hơn */
+    -fx-control-inner-background: #1F1F1F; /* Nền bên trong */
+    -fx-text-fill: #00FF00; /* Chữ màu xanh lá cây kiểu log */
+    -fx-font-family: "Consolas", "Monaco", monospace;
+}
+
+/* Kiểu cho TitledPane (khung chứa chức năng) */
+.titled-pane {
+    -fx-text-fill: white;
+}
+.titled-pane > .title {
+    -fx-background-color: #333333; /* Tối hơn */
+    -fx-border-color: #1F1F1F;
+}
+.titled-pane > .title > .text {
+    -fx-fill: white;
+    -fx-font-weight: bold;
+}
+.titled-pane > .content {
+    -fx-background-color: #2D2D2D; /* Tối hơn */
+    -fx-padding: 10px;
+    -fx-border-color: #333333;
+}

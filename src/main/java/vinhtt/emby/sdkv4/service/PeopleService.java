@@ -14,13 +14,16 @@ import java.util.List;
 public class PeopleService {
 
     private PersonsServiceApi  personsServiceApi;
+    private ItemService itemService; // Thêm dòng này
 
-    public PeopleService() {
+    // Sửa hàm khởi tạo
+    public PeopleService(ItemService itemService) {
         this.personsServiceApi = new PersonsServiceApi(Configuration.getDefaultApiClient());
+        this.itemService = itemService; // Gán ItemService
     }
 
     public List<BaseItemDto> getListPeople() {
-
+        // ... (Không thay đổi gì ở hàm này) ...
         if (personsServiceApi != null) {
             try{
                 QueryResultBaseItemDto listPeople = personsServiceApi.getPersons(
@@ -142,7 +145,7 @@ public class PeopleService {
     }
 
     public  List<BaseItemDto> getListPeopleByID(String peopleID, Integer startIndex, Integer limit, boolean recursive) {
-
+        // ... (Không thay đổi gì ở hàm này) ...
         if (personsServiceApi != null) {
 
             ItemsServiceApi itemsServiceApi = new ItemsServiceApi(Configuration.getDefaultApiClient());
@@ -269,8 +272,10 @@ public class PeopleService {
     }
 
     public void copyPeople(String itemCopyID, String parentID) {
-        ItemService itemService = new ItemService();
-        BaseItemDto itemCopy = itemService.getInforItem(itemCopyID);
+        // Bỏ dòng này
+        // ItemService itemService = new ItemService();
+        // Dùng this.itemService
+        BaseItemDto itemCopy = this.itemService.getInforItem(itemCopyID);
 
         if(itemCopy == null){
             System.out.println("Not found item copy");
@@ -283,7 +288,8 @@ public class PeopleService {
             }
         }
 
-        List<BaseItemDto> listItemPaste = itemService.getListItemByParentID(parentID, null, null, true);
+        // Dùng this.itemService
+        List<BaseItemDto> listItemPaste = this.itemService.getListItemByParentID(parentID, null, null, true);
         if (listItemPaste == null) {
             System.out.println("Not found item paste");
             return;
@@ -292,7 +298,8 @@ public class PeopleService {
         BaseItemDto itemPaste = null;
         for (BaseItemDto eachItemPaste : listItemPaste) {
             System.out.println("ID: " + eachItemPaste.getId()+ " Name: " + eachItemPaste.getName());
-            itemPaste = itemService.getInforItem(eachItemPaste.getId());
+            // Dùng this.itemService
+            itemPaste = this.itemService.getInforItem(eachItemPaste.getId());
 
             List<BaseItemPerson> listPeopleItemPaste = itemPaste.getPeople();
 
@@ -304,16 +311,19 @@ public class PeopleService {
                 System.out.println(eachPeoplePaste.toString());
             }
 
-            if(itemService.updateInforItem(itemPaste.getId(),itemPaste)) {
+            // Dùng this.itemService
+            if(this.itemService.updateInforItem(itemPaste.getId(),itemPaste)) {
                 System.out.println("Update success "+eachItemPaste.getName());
             }
         }
     }
 
     public void clearPeopleByParentID(String parentID) {
-        ItemService itemService = new ItemService();
+        // Bỏ dòng này
+        // ItemService itemService = new ItemService();
 
-        List<BaseItemDto> listItem = itemService.getListItemByParentID(parentID, null, null, true);
+        // Dùng this.itemService
+        List<BaseItemDto> listItem = this.itemService.getListItemByParentID(parentID, null, null, true);
         if (listItem == null) {
             System.out.println("Not found item");
             return;
@@ -322,31 +332,34 @@ public class PeopleService {
         BaseItemDto itemPaste = null;
         for (BaseItemDto eachItem : listItem) {
             System.out.println("ID: " + eachItem.getId()+ " Name: " + eachItem.getName());
-            itemPaste = itemService.getInforItem(eachItem.getId());
+            // Dùng this.itemService
+            itemPaste = this.itemService.getInforItem(eachItem.getId());
             itemPaste.getPeople().clear();
 
-            if(itemService.updateInforItem(itemPaste.getId(),itemPaste)) {
+            // Dùng this.itemService
+            if(this.itemService.updateInforItem(itemPaste.getId(),itemPaste)) {
                 System.out.println("Update success "+eachItem.getName());
             }
         }
     }
 
     public void clearPeople(String studioId) {
-
-        ItemService itemService = new ItemService();
+        // Bỏ dòng này
+        // ItemService itemService = new ItemService();
 
         List<BaseItemDto> listStudioBy = getListPeopleByID(studioId, null, null, true);
 
         if (listStudioBy != null) {
             BaseItemDto itemDto = null;
             for (BaseItemDto eachItemOfPeople : listStudioBy) {
-
-                itemDto = itemService.getInforItem(eachItemOfPeople.getId());
+                // Dùng this.itemService
+                itemDto = this.itemService.getInforItem(eachItemOfPeople.getId());
 
                 if (itemDto != null) {
                     itemDto.getPeople().clear();
 
-                    if(itemService.updateInforItem(eachItemOfPeople.getId(),itemDto)) {
+                    // Dùng this.itemService
+                    if(this.itemService.updateInforItem(eachItemOfPeople.getId(),itemDto)) {
                         System.out.println("Update success "+eachItemOfPeople.getName());
                     }
                 }

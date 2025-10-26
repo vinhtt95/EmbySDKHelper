@@ -7,19 +7,26 @@ import embyclient.api.ItemsServiceApi;
 import embyclient.api.UserLibraryServiceApi;
 import embyclient.model.BaseItemDto;
 import embyclient.model.QueryResultBaseItemDto;
-import vinhtt.emby.sdkv4.AuthenUserService;
+// Bỏ AuthenUserService đi
+// import vinhtt.emby.sdkv4.AuthenUserService;
 
 import java.util.List;
 
 public class ItemService {
     private ItemsServiceApi itemsServiceApi;
-    private AuthenUserService authenUserService;
+    // Bỏ AuthenUserService
+    // private AuthenUserService authenUserService;
     private UserLibraryServiceApi userLibraryServiceApi;
+    private String userId; // Thêm dòng này
 
-    public ItemService() {
+    // Sửa hàm khởi tạo
+    public ItemService(String userId) {
         this.itemsServiceApi = new ItemsServiceApi(Configuration.getDefaultApiClient());
-        this.authenUserService = new AuthenUserService(Configuration.getDefaultApiClient());
-        authenUserService.login();
+        this.userId = userId; // Gán userId
+
+        // Bỏ 2 dòng tự đăng nhập
+        // this.authenUserService = new AuthenUserService(Configuration.getDefaultApiClient());
+        // authenUserService.login();
 
         userLibraryServiceApi = new UserLibraryServiceApi(Configuration.getDefaultApiClient());
     }
@@ -157,7 +164,8 @@ public class ItemService {
 
     public BaseItemDto getInforItem(String itemId) {
         try {
-            BaseItemDto itemInfo = userLibraryServiceApi.getUsersByUseridItemsById(authenUserService.getUserId(), itemId);
+            // Sửa dòng này để dùng this.userId
+            BaseItemDto itemInfo = userLibraryServiceApi.getUsersByUseridItemsById(this.userId, itemId);
 
             if (itemInfo != null) {
                 return  itemInfo;

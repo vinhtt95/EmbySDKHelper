@@ -11,11 +11,16 @@ import java.util.List;
 public class TagService {
 
     private TagServiceApi tagServiceApi;
-    public TagService() {
+    private ItemService itemService; // Thêm dòng này
+
+    // Sửa hàm khởi tạo
+    public TagService(ItemService itemService) {
         this.tagServiceApi = new TagServiceApi(Configuration.getDefaultApiClient());
+        this.itemService = itemService; // Gán ItemService
     }
 
     public List<UserLibraryTagItem> getListTags() {
+        // ... (Không thay đổi gì ở hàm này) ...
         if (tagServiceApi != null) {
             try{
                 QueryResultUserLibraryTagItem listTags = tagServiceApi.getTags(
@@ -137,6 +142,7 @@ public class TagService {
     }
 
     public List<BaseItemDto> getListItemByTagId(String tagsName, Integer startIndex, Integer limit, boolean recursive) {
+        // ... (Không thay đổi gì ở hàm này) ...
         ItemsServiceApi itemsServiceApi = new ItemsServiceApi(Configuration.getDefaultApiClient());
 
         if (tagServiceApi != null) {
@@ -262,21 +268,22 @@ public class TagService {
     }
 
     public void clearTags(String tagName) {
-
-        ItemService itemService = new ItemService();
+        // Bỏ dòng này
+        // ItemService itemService = new ItemService();
 
         List<BaseItemDto> listItemByTagName = getListItemByTagId(tagName, null, null, true);
 
         if (listItemByTagName != null) {
             BaseItemDto itemDto = null;
             for (BaseItemDto eachItemOfTagName : listItemByTagName) {
-
-                itemDto = itemService.getInforItem(eachItemOfTagName.getId());
+                // Dùng this.itemService
+                itemDto = this.itemService.getInforItem(eachItemOfTagName.getId());
 
                 if (itemDto != null) {
                     itemDto.getTagItems().clear();
 
-                    if(itemService.updateInforItem(eachItemOfTagName.getId(),itemDto)) {
+                    // Dùng this.itemService
+                    if(this.itemService.updateInforItem(eachItemOfTagName.getId(),itemDto)) {
                         System.out.println("Update success "+eachItemOfTagName.getName());
                     }
                 }
@@ -285,8 +292,10 @@ public class TagService {
     }
 
     public void copyTags(String itemCopyID, String parentID) {
-        ItemService itemService = new ItemService();
-        BaseItemDto itemCopy = itemService.getInforItem(itemCopyID);
+        // Bỏ dòng này
+        // ItemService itemService = new ItemService();
+        // Dùng this.itemService
+        BaseItemDto itemCopy = this.itemService.getInforItem(itemCopyID);
 
         if(itemCopy == null){
             System.out.println("Not found item copy");
@@ -299,7 +308,8 @@ public class TagService {
             }
         }
 
-        List<BaseItemDto> listItemPaste = itemService.getListItemByParentID(parentID, null, null, true);
+        // Dùng this.itemService
+        List<BaseItemDto> listItemPaste = this.itemService.getListItemByParentID(parentID, null, null, true);
         if (listItemPaste == null) {
             System.out.println("Not found item paste");
             return;
@@ -308,7 +318,8 @@ public class TagService {
         BaseItemDto itemPaste = null;
         for (BaseItemDto eachItemPaste : listItemPaste) {
             System.out.println("ID: " + eachItemPaste.getId()+ " Name: " + eachItemPaste.getName());
-            itemPaste = itemService.getInforItem(eachItemPaste.getId());
+            // Dùng this.itemService
+            itemPaste = this.itemService.getInforItem(eachItemPaste.getId());
 
             List<NameLongIdPair> listTagsItemPaste = itemPaste.getTagItems();
 
@@ -320,16 +331,19 @@ public class TagService {
                 System.out.println(eachTagsPaste.toString());
             }
 
-            if(itemService.updateInforItem(itemPaste.getId(),itemPaste)) {
+            // Dùng this.itemService
+            if(this.itemService.updateInforItem(itemPaste.getId(),itemPaste)) {
                 System.out.println("Update success "+eachItemPaste.getName());
             }
         }
     }
 
     public void clearTagsByParentID(String parentID) {
-        ItemService itemService = new ItemService();
+        // Bỏ dòng này
+        // ItemService itemService = new ItemService();
 
-        List<BaseItemDto> listItem = itemService.getListItemByParentID(parentID, null, null, true);
+        // Dùng this.itemService
+        List<BaseItemDto> listItem = this.itemService.getListItemByParentID(parentID, null, null, true);
         if (listItem == null) {
             System.out.println("Not found item");
             return;
@@ -338,10 +352,12 @@ public class TagService {
         BaseItemDto itemPaste = null;
         for (BaseItemDto eachItem : listItem) {
             System.out.println("ID: " + eachItem.getId()+ " Name: " + eachItem.getName());
-            itemPaste = itemService.getInforItem(eachItem.getId());
+            // Dùng this.itemService
+            itemPaste = this.itemService.getInforItem(eachItem.getId());
             itemPaste.getTagItems().clear();
 
-            if(itemService.updateInforItem(itemPaste.getId(),itemPaste)) {
+            // Dùng this.itemService
+            if(this.itemService.updateInforItem(itemPaste.getId(),itemPaste)) {
                 System.out.println("Update success "+eachItem.getName());
             }
         }
