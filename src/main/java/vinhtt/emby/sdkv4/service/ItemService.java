@@ -307,35 +307,47 @@ public class ItemService {
             return "";
         }
 
-        String cleanedInput = input.replaceAll("(?i)[.-](HD)$", "");
+        // 1. Loại bỏ các hậu tố chất lượng (HD, 4K, 1080P) với mọi ký tự phân tách phổ biến (., -, _)
+        // và các lỗi cú pháp ngoặc []
+        String cleanedInput = input
+                // Loại bỏ các mẫu [4K], [HD], v.v. (kể cả lỗi cú pháp như [4K})
+                .replaceAll("(?i)[._-]?[\\p{Punct}&&[^.-_]]*4k[\\p{Punct}&&[^.-_]]*$", "")
+                .replaceAll("(?i)[._-][\\p{Punct}&&[^.-_]]*(HD|1080P|720P)[\\p{Punct}&&[^.-_]]*$", "")
+                // Loại bỏ các hậu tố sau khi đã dọn dẹp ký tự đặc biệt xung quanh
+                .replaceAll("(?i)[._-](4k|hd|1080p|720p)$", "");
 
-        // Loại bỏ các ký tự không mong muốn và chuẩn hóa định dạng
-        String normalized = cleanedInput.replaceAll("([a-zA-Z])(\\d)", "$1-$2").replaceAll("(\\d)([a-zA-Z])", "$1-$2").replaceAll("[^a-zA-Z0-9]", "-") // Thay ký tự không phải chữ cái/số bằng dấu '-'
+        // 2. Chèn dấu '-' giữa phần chữ và số (ví dụ: ABC317 -> ABC-317)
+        String normalized = cleanedInput
+                .replaceAll("([a-zA-Z])(\\d)", "$1-$2") // Chữ theo sau là số
+                .replaceAll("(\\d)([a-zA-Z])", "$1-$2"); // Số theo sau là chữ
+
+        // 3. Thay thế MỌI ký tự không phải chữ/số/gạch ngang bằng dấu '-'
+        normalized = normalized
+                .replaceAll("[^a-zA-Z0-9-]", "-")
                 .replaceAll("-+", "-") // Loại bỏ dấu '-' thừa
-                .replaceAll("(?i)-4k$", "");    // Loại bỏ hậu tố '-4k' (không phân biệt hoa thường)
+                .replaceAll("^-|-$", ""); // Loại bỏ dấu '-' ở đầu/cuối chuỗi
 
-        // Tách phần chữ và số, sau đó chuẩn hóa
+        // 4. Tách và chuẩn hóa các phần, đồng thời loại bỏ các hậu tố còn sót lại
         String[] parts = normalized.split("-");
         StringBuilder result = new StringBuilder();
-        boolean firstPart = true; // Thêm cờ để xử lý dấu '-'
+        boolean firstPart = true;
 
         for (String part : parts) {
-            if (part.isEmpty()) continue; // Bỏ qua các phần rỗng
+            if (part.isEmpty()) continue;
+
+            // BỔ SUNG: Loại bỏ các phần tử hậu tố chất lượng SÓT LẠI sau khi đã bị tách
+            // Điều này xử lý triệt để các trường hợp như ABC-741-4K
+            if (part.matches("(?i)\\d*K|HD|1080P|720P|MP4|MKV|COM|NET|ORG")) {
+                continue;
+            }
 
             if (!firstPart) {
-                result.append("-"); // Thêm dấu '-' trước các phần tử sau
+                result.append("-");
             }
 
-            if (part.matches("[a-zA-Z]+")) {
-                result.append(part.toUpperCase()); // Chuyển phần chữ cái thành in hoa
-            } else if (part.matches("\\d+")) {
-                result.append(part); // Giữ nguyên phần số
-            } else {
-                // Xử lý trường hợp có chữ và số lẫn lộn (ví dụ: "ABC123" sau khi clean)
-                // Logic regex ở trên đã xử lý "([a-zA-Z])(\\d)", nên trường hợp này ít xảy ra
-                // nhưng để an toàn, chúng ta chuẩn hóa nó
-                result.append(part.toUpperCase());
-            }
+            // Đảm bảo phần chữ cái được in hoa
+            result.append(part.toUpperCase());
+
             firstPart = false;
         }
 
