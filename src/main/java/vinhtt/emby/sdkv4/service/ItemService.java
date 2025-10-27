@@ -16,6 +16,8 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.json.JSONObject;
 
@@ -302,70 +304,35 @@ public class ItemService {
         return input.replaceAll("([a-zA-Z]+)(\\d+)", "$1-$2");
     }
 
+    private static final Pattern NORMALIZE_PATTERN =
+            Pattern.compile("^[^a-zA-Z]*([a-zA-Z]+)[^a-zA-Z0-9]*(\\d+)");
+
+    /**
+     * Chuẩn hóa tên file về định dạng [CHỮ]-[SỐ]
+     * (ví dụ: "ABC-123")
+     */
     public static String normalizeFileName(String input) {
         if (input == null || input.isEmpty()) {
             return "";
         }
 
-        // 1. Loại bỏ các hậu tố và ký tự đặc biệt phổ biến (tùy chọn)
-        // Giúp chuẩn hóa chuỗi trước khi tìm kiếm mẫu chính.
-        String cleanedInput = input
-                // Loại bỏ các mẫu [4K], .HD, v.v. (giúp giảm nhiễu)
-                .replaceAll("(?i)[._-]?[\\p{Punct}&&[^.-_]]*4k[\\p{Punct}&&[^.-_]]*$", "")
-                .replaceAll("(?i)[._-](HD|1080P|720P)$", "")
-                // Thay thế tất cả các ký tự không phải chữ/số/gạch ngang bằng dấu gạch ngang
-                .replaceAll("[^a-zA-Z0-9-]", "-");
+        // Tạo một Matcher để tìm kiếm dựa trên pattern
+        Matcher matcher = NORMALIZE_PATTERN.matcher(input);
 
-        // 2. Chèn dấu '-' giữa phần chữ và số (ví dụ: ABC317 -> ABC-317)
-        // Đây là bước quan trọng để tạo ra dấu gạch ngang phân tách chính.
-        String normalized = cleanedInput
-                .replaceAll("([a-zA-Z])(\\d)", "$1-$2");
+        // Kiểm tra xem có tìm thấy sự trùng khớp không
+        if (matcher.find()) {
+            // matcher.group(1) là phần ([a-zA-Z]+)
+            String letters = matcher.group(1);
+            // matcher.group(2) là phần (\d+)
+            String numbers = matcher.group(2);
 
-        // 3. Chuẩn hóa và Trích xuất chỉ [Chữ]-[Số]
-        // Loại bỏ mọi thứ sau dấu gạch ngang đầu tiên nếu có, và hợp nhất các dấu gạch ngang thừa.
-        normalized = normalized
-                .replaceAll("-+", "-") // Hợp nhất dấu gạch ngang thừa
-                .replaceAll("^-|-$", ""); // Loại bỏ dấu '-' ở đầu/cuối chuỗi
-
-        // Tách chuỗi theo dấu gạch ngang
-        String[] parts = normalized.split("-");
-        StringBuilder result = new StringBuilder();
-
-        // TÌM PHẦN CHỮ VÀ PHẦN SỐ ĐẦU TIÊN
-        String partA = ""; // Phần chữ cái
-        String partB = ""; // Phần số
-
-        for (String part : parts) {
-            if (part.isEmpty()) continue;
-
-            // Gán phần chữ cái đầu tiên tìm được
-            if (partA.isEmpty() && part.matches("[a-zA-Z]+")) {
-                partA = part;
-                continue;
-            }
-
-            // Gán phần số đầu tiên tìm được
-            if (!partA.isEmpty() && partB.isEmpty() && part.matches("\\d+")) {
-                partB = part;
-                // DỪNG LẠI NGAY LẬP TỨC để đảm bảo không có phần tử thứ 3 nào được thêm vào
-                break;
-            }
+            // Trả về chuỗi đã chuẩn hóa theo định dạng [CHỮ]-[SỐ]
+            return letters.toUpperCase() + "-" + numbers;
         }
 
-        // 4. Xây dựng chuỗi đầu ra theo định dạng [CHỮ]-[SỐ]
-        if (!partA.isEmpty() && !partB.isEmpty()) {
-            // Định dạng ABC-123
-            return partA.toUpperCase() + "-" + partB;
-        } else if (!partA.isEmpty()) {
-            // Nếu chỉ có phần chữ (VD: ABC)
-            return partA.toUpperCase();
-        } else if (!partB.isEmpty()) {
-            // Nếu chỉ có phần số (VD: 123)
-            return partB;
-        } else {
-            // Trường hợp không tìm thấy phần chữ hoặc số
-            return "";
-        }
+        // Nếu không tìm thấy mẫu nào khớp (ví dụ: "chỉ chữ", "chỉ số", "123-ABC")
+        // trả về chuỗi rỗng để đảm bảo tính nghiêm ngặt của định dạng.
+        return "";
     }
 
 
