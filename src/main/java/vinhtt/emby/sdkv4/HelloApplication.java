@@ -11,33 +11,66 @@ import javafx.scene.Scene;
 import javafx.stage.Stage;
 
 import java.io.IOException;
-import java.util.Locale; // <-- THÊM IMPORT
-import java.util.ResourceBundle; // <-- THÊM IMPORT
+import java.io.InputStream; // <-- Cần
+import java.io.InputStreamReader; // <-- Cần
+import java.nio.charset.StandardCharsets; // <-- Cần
+import java.util.Locale;
+import java.util.ResourceBundle;
+import java.util.PropertyResourceBundle; // <-- Cần
 
 public class HelloApplication extends Application {
 
     private ConfigService configService = new ConfigService();
     private Stage primaryStage;
-    private ResourceBundle bundle; // <-- THÊM BIẾN NÀY
+    private ResourceBundle bundle;
+
+    // ĐÃ XÓA LỚP Utf8Control KHỎI ĐÂY
 
     @Override
     public void start(Stage stage) throws IOException {
         this.primaryStage = stage;
 
-        // --- TẢI RESOURCE BUNDLE ---
-        // Sử dụng Locale mặc định của hệ thống.
-        // Bạn có thể ép ngôn ngữ bằng cách bỏ comment các dòng dưới:
-        // Locale.setDefault(Locale.of("vi", "VN")); // Ép tiếng Việt
-        // Locale.setDefault(Locale.of("en", "US")); // Ép tiếng Anh
+        // --- TẢI RESOURCE BUNDLE (FIXED FOR NAMED MODULES) ---
+        String lang = configService.getLanguage();
+        Locale currentLocale = Locale.of(lang);
+        Locale.setDefault(currentLocale);
 
-        Locale currentLocale = Locale.getDefault();
-        try {
-            // Tên "vinhtt.emby.sdkv4.messages" trỏ đến /resources/vinhtt/emby/sdkv4/messages.properties
+        // Phương thức mới: Tải ResourceBundle thủ công với UTF-8
+        String preferredBundlePath = "vinhtt/emby/sdkv4/messages_" + currentLocale.getLanguage() + ".properties";
+        ResourceBundle tempBundle = null;
+
+        // 1. Thử tải gói ngôn ngữ đã lưu (ví dụ: messages_vi.properties)
+        try (InputStream is = HelloApplication.class.getResourceAsStream(preferredBundlePath)) {
+            if (is != null) {
+                try (InputStreamReader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
+                    tempBundle = new PropertyResourceBundle(reader);
+                }
+            }
+        } catch (IOException e) {
+            System.err.println("Lỗi đọc file properties cho locale " + lang + ": " + e.getMessage());
+        }
+
+        // 2. Fallback sang tiếng Anh nếu ngôn ngữ đã lưu không tồn tại hoặc lỗi
+        if (tempBundle == null && !currentLocale.getLanguage().equals("en")) {
+            System.out.println("Không tìm thấy file locale " + lang + ". Đang thử tải tiếng Anh.");
+            String englishBundlePath = "vinhtt/emby/sdkv4/messages_en.properties";
+            try (InputStream is = HelloApplication.class.getResourceAsStream(englishBundlePath)) {
+                if (is != null) {
+                    try (InputStreamReader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
+                        tempBundle = new PropertyResourceBundle(reader);
+                    }
+                }
+            } catch (IOException e) {
+                System.err.println("Lỗi đọc file properties cho locale English: " + e.getMessage());
+            }
+        }
+
+        // 3. Gán gói ngôn ngữ (Đảm bảo this.bundle không null)
+        if (tempBundle != null) {
+            this.bundle = tempBundle;
+        } else {
+            // Fallback cuối cùng nếu không có file nào đọc được (chỉ nên xảy ra khi project không có file properties)
             this.bundle = ResourceBundle.getBundle("vinhtt.emby.sdkv4.messages", currentLocale);
-        } catch (Exception e) {
-            System.err.println("Không thể tải ResourceBundle, kiểm tra lại đường dẫn và tên file: " + e.getMessage());
-            // Tải bundle mặc định (tiếng Anh) nếu có lỗi
-            this.bundle = ResourceBundle.getBundle("vinhtt.emby.sdkv4.messages", Locale.ENGLISH);
         }
         // --- KẾT THÚC TẢI ---
 
@@ -59,11 +92,11 @@ public class HelloApplication extends Application {
         }
     }
 
-    // *** (validateSavedSession không thay đổi) ***
+    // ... (validateSavedSession giữ nguyên)
     private void validateSavedSession(String serverUrl, String apiKey, String accessToken, String userId) {
         new Thread(() -> {
             boolean sessionValid = false;
-            ApiClient tempApiClient = new ApiClient(); // Tạo client tạm thời chỉ để kiểm tra
+            ApiClient tempApiClient = new ApiClient();
             try {
                 // 1. Cấu hình client tạm thời
                 tempApiClient.setBasePath(serverUrl);
@@ -123,7 +156,7 @@ public class HelloApplication extends Application {
     private void showLoginView() {
         try {
             FXMLLoader fxmlLoader = new FXMLLoader(HelloApplication.class.getResource("login-view.fxml"));
-            fxmlLoader.setResources(this.bundle); // <-- THÊM DÒNG NÀY
+            fxmlLoader.setResources(this.bundle);
 
             double width = configService.getLoginWindowWidth();
             double height = configService.getLoginWindowHeight();
@@ -136,7 +169,6 @@ public class HelloApplication extends Application {
 
             primaryStage.widthProperty().addListener((obs, oldVal, newVal) -> configService.saveLoginWindowSize(primaryStage.getWidth(), primaryStage.getHeight()));
             primaryStage.heightProperty().addListener((obs, oldVal, newVal) -> configService.saveLoginWindowSize(primaryStage.getWidth(), primaryStage.getHeight()));
-            primaryStage.setOnCloseRequest(e -> configService.saveLoginWindowSize(primaryStage.getWidth(), primaryStage.getHeight()));
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -146,7 +178,7 @@ public class HelloApplication extends Application {
     public void openMainWindow(String userId) {
         try {
             FXMLLoader fxmlLoader = new FXMLLoader(HelloApplication.class.getResource("main-view.fxml"));
-            fxmlLoader.setResources(this.bundle); // <-- THÊM DÒNG NÀY
+            fxmlLoader.setResources(this.bundle);
 
             double width = configService.getMainWindowWidth();
             double height = configService.getMainWindowHeight();
@@ -161,7 +193,6 @@ public class HelloApplication extends Application {
             primaryStage.widthProperty().addListener((obs, oldVal, newVal) -> configService.saveMainWindowSize(primaryStage.getWidth(), primaryStage.getHeight()));
             primaryStage.heightProperty().addListener((obs, oldVal, newVal) -> configService.saveMainWindowSize(primaryStage.getWidth(), primaryStage.getHeight()));
             primaryStage.setOnCloseRequest(e -> {
-                configService.saveMainWindowSize(primaryStage.getWidth(), primaryStage.getHeight());
                 Platform.exit();
                 System.exit(0);
             });
@@ -171,7 +202,6 @@ public class HelloApplication extends Application {
         }
     }
 
-    // ... (applyStylesAndShow và handleLogout không thay đổi) ...
     private void applyStylesAndShow(Scene scene, String title, Stage stage) {
         String css = HelloApplication.class.getResource("style.css").toExternalForm();
         scene.getStylesheets().add(css);
@@ -188,7 +218,24 @@ public class HelloApplication extends Application {
         Platform.runLater(() -> {
             try {
                 Stage loginStage = new Stage();
-                start(loginStage); // Gọi lại start để bắt đầu lại logic
+                start(loginStage);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        });
+    }
+
+    public void switchLanguage(String langCode) {
+        configService.saveLanguage(langCode);
+
+        if (primaryStage != null) {
+            primaryStage.close();
+        }
+
+        Platform.runLater(() -> {
+            try {
+                Stage newStage = new Stage();
+                start(newStage);
             } catch (IOException e) {
                 e.printStackTrace();
             }

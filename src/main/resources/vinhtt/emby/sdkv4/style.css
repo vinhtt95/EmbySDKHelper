@@ -128,6 +128,52 @@
     -fx-border-width: 1 0 0 0;
 }
 
+/* --- THÊM: CSS CHO TABPANE --- */
+.tab-pane {
+    -fx-tab-min-width: 150px;
+    -fx-tab-min-height: 35px; /* Giảm chiều cao tab một chút */
+}
+.tab-pane .tab-header-area {
+    -fx-background-color: #1e1e1e; /* Nền header */
+    -fx-padding: 5px 0 0 10px;
+    -fx-border-color: #3a3a3a;
+    -fx-border-width: 0 0 1 0; /* Viền dưới thanh header */
+}
+.tab-pane .tab-header-background {
+    -fx-background-color: #1e1e1e; /* Nền thanh tab */
+}
+.tab-pane .tab {
+    -fx-background-color: #2a2a2a; /* Màu tab chưa chọn */
+    -fx-background-radius: 5 5 0 0;
+    -fx-background-insets: 0 2 0 0; /* Khoảng cách giữa các tab */
+    -fx-padding: 8px 20px 8px 20px; /* Padding tab */
+}
+.tab-pane .tab .tab-label {
+    -fx-text-fill: #999999; /* Chữ tab chưa chọn */
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+}
+.tab-pane .tab:selected {
+    -fx-background-color: #121212; /* Nền tab đã chọn (giống nền root) */
+    -fx-border-color: #3a3a3a;
+    -fx-border-width: 1 1 0 1;
+    -fx-padding: 8px 20px 8px 20px;
+}
+.tab-pane .tab:selected .tab-label {
+    -fx-text-fill: #e0e0e0; /* Chữ tab đã chọn */
+}
+.tab-pane .tab:hover {
+    -fx-background-color: #333333; /* Hover tab chưa chọn */
+}
+.tab-pane .tab:selected:hover {
+    -fx-background-color: #121212; /* Hover tab đã chọn (không đổi) */
+}
+.tab-pane .tab-content-area {
+    -fx-background-color: #121212; /* Nền nội dung tab */
+}
+/* --- KẾT THÚC CSS TABPANE --- */
+
+
 /* ScrollPane */
 .scroll-pane {
     -fx-background-color: #1e1e1e; /* Nền tối cho scrollpane chứa chip */
@@ -207,7 +253,7 @@
 }
 
 
-/* --- TAG VIEW / CHIP STYLES (SỬA LẠI KHÔNG DÙNG :has()) --- */
+/* --- TAG VIEW / CHIP STYLES (HOÀN NGUYÊN LẠI) --- */
 .tag-view { /* HBox chứa nội dung chip */
     -fx-background-color: transparent;
     -fx-padding: 0;
@@ -230,11 +276,11 @@
 
 /* Style cho loại chip JSON (Màu xanh dương) - Áp dụng class .tag-view-json cho ToggleButton */
 .chip-toggle-button.tag-view-json {
-    -fx-background-color: #004d80;
-    -fx-border-color: #007acc;
+    -fx-background-color: #004d80; /* <-- HOÀN NGUYÊN */
+    -fx-border-color: #007acc; /* <-- HOÀN NGUYÊN */
 }
 .chip-toggle-button.tag-view-json:hover {
-    -fx-background-color: #005f9e;
+    -fx-background-color: #005f9e; /* <-- HOÀN NGUYÊN */
 }
 
 /* Style chữ bên trong JSON (Nhắm mục tiêu con bên trong ToggleButton.tag-view-json) */
@@ -259,11 +305,11 @@
 
 /* Style cho loại chip Simple (Màu hồng) - Áp dụng class .tag-view-simple cho ToggleButton */
 .chip-toggle-button.tag-view-simple {
-    -fx-background-color: rgba(180, 49, 93, 0.8);
-    -fx-border-color: #F06292;
+    -fx-background-color: rgba(180, 49, 93, 0.8); /* <-- HOÀN NGUYÊN */
+    -fx-border-color: #F06292; /* <-- HOÀN NGUYÊN */
 }
 .chip-toggle-button.tag-view-simple:hover {
-    -fx-background-color: rgba(200, 60, 110, 0.9);
+    -fx-background-color: rgba(200, 60, 110, 0.9); /* <-- HOÀN NGUYÊN */
 }
 
 /* Style chữ bên trong Simple (Nhắm mục tiêu con bên trong ToggleButton.tag-view-simple) */

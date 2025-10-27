@@ -12,6 +12,7 @@ public class ConfigService {
     // --- THÊM CÁC KEY MỚI ---
     private static final String KEY_ACCESS_TOKEN = "accessToken";
     private static final String KEY_USER_ID = "userId";
+    private static final String KEY_LANGUAGE = "language"; // <-- THÊM KEY NGÔN NGỮ
     // --- (Kết thúc thêm key) ---
 
 
@@ -65,16 +66,39 @@ public class ConfigService {
     }
     // --- (Kết thúc thêm hàm session) ---
 
+    // --- THÊM HÀM LƯU/TẢI NGÔN NGỮ ---
+    public void saveLanguage(String langCode) {
+        prefs.put(KEY_LANGUAGE, langCode);
+        try {
+            prefs.flush();
+        } catch (Exception e) {
+            System.err.println("Lỗi flush preferences khi lưu ngôn ngữ: " + e.getMessage());
+        }
+    }
+
+    public String getLanguage() {
+        return prefs.get(KEY_LANGUAGE, "vi"); // Mặc định là 'vi'
+    }
+    // --- (Kết thúc) ---
+
+
     // Các hàm getServerAddress, getApiKey, getUsername không đổi...
     public String getServerAddress() { return prefs.get(KEY_SERVER, "http://localhost:8096/emby"); }
     public String getApiKey() { return prefs.get(KEY_APIKEY, ""); }
     public String getUsername() { return prefs.get(KEY_USERNAME, "admin"); }
 
-    // Các hàm lưu/tải kích thước cửa sổ không đổi...
-    public void saveLoginWindowSize(double width, double height) { /* ... */ }
-    public double getLoginWindowWidth() { /* ... */ return prefs.getDouble(KEY_LOGIN_WIDTH, 450); }
-    public double getLoginWindowHeight() { /* ... */ return prefs.getDouble(KEY_LOGIN_HEIGHT, 500); }
-    public void saveMainWindowSize(double width, double height) { /* ... */ }
-    public double getMainWindowWidth() { /* ... */ return prefs.getDouble(KEY_MAIN_WIDTH, 900); }
-    public double getMainWindowHeight() { /* ... */ return prefs.getDouble(KEY_MAIN_HEIGHT, 750); }
+    // Các hàm lưu/tải kích thước cửa sổ (ĐÃ SỬA)
+    public void saveLoginWindowSize(double width, double height) {
+        prefs.putDouble(KEY_LOGIN_WIDTH, width);
+        prefs.putDouble(KEY_LOGIN_HEIGHT, height);
+    }
+    public double getLoginWindowWidth() { return prefs.getDouble(KEY_LOGIN_WIDTH, 450); }
+    public double getLoginWindowHeight() { return prefs.getDouble(KEY_LOGIN_HEIGHT, 500); }
+
+    public void saveMainWindowSize(double width, double height) {
+        prefs.putDouble(KEY_MAIN_WIDTH, width);
+        prefs.putDouble(KEY_MAIN_HEIGHT, height);
+    }
+    public double getMainWindowWidth() { return prefs.getDouble(KEY_MAIN_WIDTH, 900); }
+    public double getMainWindowHeight() { return prefs.getDouble(KEY_MAIN_HEIGHT, 850); } // <-- TĂNG CHIỀU CAO MẶC ĐỊNH
 }

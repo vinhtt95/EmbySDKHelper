@@ -13,6 +13,7 @@ import javafx.scene.control.*;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.stage.DirectoryChooser;
+import javafx.util.StringConverter;
 import vinhtt.emby.sdkv4.service.*;
 import vinhtt.emby.sdkv4.ui.TagModel;
 import vinhtt.emby.sdkv4.ui.TagView;
@@ -20,27 +21,29 @@ import vinhtt.emby.sdkv4.ui.TagView;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.time.OffsetDateTime; // Import này đã có
+import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.List;
-import java.util.ResourceBundle; // <-- THÊM IMPORT
-import embyclient.JSON.OffsetDateTimeTypeAdapter; // Import này đã có
+import java.util.ResourceBundle;
+import embyclient.JSON.OffsetDateTimeTypeAdapter;
 
 public class MainController {
 
-    // (Enum MetadataType không đổi)
+    // (Enum MetadataType đã được cập nhật để dùng i18n keys)
     private enum MetadataType {
-        STUDIO("Studio", "Studios"),
-        GENRE("Genre", "Genres"),
-        PEOPLE("People", "People"),
-        TAG("Tag", "Tags");
-        final String singularName;
-        final String pluralName;
-        MetadataType(String singular, String plural) { this.singularName = singular; this.pluralName = plural; }
-        @Override public String toString() { return this.pluralName; }
+        STUDIO("metadata.studios", "metadata.studio.singular"),
+        GENRE("metadata.genres", "metadata.genre.singular"),
+        PEOPLE("metadata.people", "metadata.people.singular"),
+        TAG("metadata.tags", "metadata.tag.singular");
+
+        final String pluralKey;
+        final String singularKey;
+        MetadataType(String pluralKey, String singularKey) {
+            this.pluralKey = pluralKey;
+            this.singularKey = singularKey;
+        }
     }
 
-    // (Biến Gson không đổi)
     private static final Gson gson = new GsonBuilder()
             .registerTypeAdapter(OffsetDateTime.class, new OffsetDateTimeTypeAdapter())
             .setPrettyPrinting()
@@ -52,16 +55,16 @@ public class MainController {
     // --- MenuBar ---
     @FXML private MenuBar menuBar;
     @FXML private MenuItem logoutMenuItem;
+    @FXML private MenuItem langMenuItemVI;
+    @FXML private MenuItem langMenuItemEN;
 
     // --- Status Bar ---
     @FXML private HBox statusBar;
     @FXML private Label statusLabel;
     @FXML private ProgressIndicator statusIndicator;
 
-    // --- Vùng Chọn Loại ---
+    // --- Vùng Chọn Loại (Tab 1: Metadata Tools) ---
     @FXML private ComboBox<MetadataType> typeComboBox;
-
-    // (Các TitledPane FXML không đổi)
     @FXML private TitledPane copyPane;
     @FXML private TextField txtCopyFromItemID;
     @FXML private TextField txtCopyToParentID;
@@ -70,9 +73,6 @@ public class MainController {
     @FXML private Label clearParentLabel;
     @FXML private TextField txtClearByParentID;
     @FXML private Button btnRunClearParent;
-    @FXML private TitledPane exportJsonPane;
-    @FXML private TextField txtExportJsonParentID;
-    @FXML private Button btnRunExportJson;
     @FXML private TitledPane clearSpecificPane;
     @FXML private Label clearSpecificLabel;
     @FXML private TextField searchField;
@@ -82,9 +82,19 @@ public class MainController {
     @FXML private Button btnRunClearSpecific;
     private final ToggleGroup selectionToggleGroup = new ToggleGroup();
 
+    // --- Vùng Công cụ Hàng loạt (Tab 2: Batch Tools) ---
+    @FXML private TitledPane exportJsonPane;
+    @FXML private TextField txtExportJsonParentID;
+    @FXML private Button btnRunExportJson;
+
+    @FXML private TitledPane batchProcessPane;
+    @FXML private TextField txtBatchProcessParentID;
+    @FXML private Button btnRunBatchProcess;
+
+
     // --- ResourceBundle ---
-    @FXML // <-- THÊM DÒNG NÀY
-    private ResourceBundle resources; // <-- THÊM BIẾN NÀY
+    @FXML
+    private ResourceBundle resources;
 
     // --- Services ---
     private ItemService itemService;
@@ -102,52 +112,87 @@ public class MainController {
     // --- Setters ---
     public void setApp(HelloApplication app) { this.app = app; }
 
+    /**
+     * Khởi tạo các Service và kích hoạt tải dữ liệu lần đầu sau khi login.
+     * Đây là nơi khắc phục lỗi race condition "loadCurrentTypeList bị gọi trước khi service sẵn sàng".
+     */
     public void setUserId(String userId) {
         this.userId = userId;
+        // 1. KHỞI TẠO SERVICES
         this.itemService = new ItemService(this.userId);
         this.studioService = new StudioService(this.itemService);
         this.genresService = new GenresService(this.itemService);
         this.peopleService = new PeopleService(this.itemService);
         this.tagService = new TagService(this.itemService);
 
-        // TRƯỚC: updateStatus("Đã khởi tạo các service với UserId: " + userId);
-        updateStatus(String.format(resources.getString("status.servicesInitialized"), userId)); // <-- SỬA DÒNG NÀY
-        Platform.runLater(this::loadCurrentTypeList);
+        updateStatus(String.format(resources.getString("status.servicesInitialized"), userId));
+
+        // 2. KÍCH HOẠT TẢI DANH SÁCH SAU KHI SERVICES SẴN SÀNG
+        Platform.runLater(() -> {
+            if (typeComboBox != null) {
+                // Việc set value này sẽ kích hoạt listener và gọi loadCurrentTypeList
+                typeComboBox.setValue(currentType);
+            } else {
+                // Fallback nếu ComboBox bị ẩn hoặc chưa được tải (nên không bao giờ xảy ra trong FXML này)
+                this.loadCurrentTypeList();
+            }
+        });
     }
 
     // --- Initialize ---
     @FXML
     public void initialize() {
-        // (Khởi tạo ComboBox, FilteredList, searchField, FlowPane, Logout không đổi)
-        typeComboBox.getItems().setAll(MetadataType.values());
-        typeComboBox.setValue(currentType);
-        typeComboBox.valueProperty().addListener((obs, oldType, newType) -> {
-            if (newType != null) {
-                currentType = newType;
-                updateUITexts();
-                clearSelectionAndSearch();
-                txtCopyFromItemID.clear();
-                txtCopyToParentID.clear();
-                loadCurrentTypeList();
-            }
-        });
+        // (Khởi tạo ComboBox)
+        if(typeComboBox != null) {
+            typeComboBox.getItems().setAll(MetadataType.values());
+
+            // Dùng StringConverter để dịch Enum
+            typeComboBox.setConverter(new StringConverter<MetadataType>() {
+                @Override
+                public String toString(MetadataType type) {
+                    if (type == null || resources == null) {
+                        return "";
+                    }
+                    return resources.getString(type.pluralKey);
+                }
+                @Override
+                public MetadataType fromString(String string) {
+                    return null;
+                }
+            });
+
+            typeComboBox.valueProperty().addListener((obs, oldType, newType) -> {
+                if (newType != null) {
+                    currentType = newType;
+                    updateUITexts(); // Cập nhật text động
+                    clearSelectionAndSearch();
+                    if(txtCopyFromItemID != null) txtCopyFromItemID.clear();
+                    if(txtCopyToParentID != null) txtCopyToParentID.clear();
+                    loadCurrentTypeList(); // Gọi cho các lần thay đổi tiếp theo
+                }
+            });
+            // BỎ DÒNG typeComboBox.setValue(currentType) TẠI ĐÂY để tránh lỗi service not ready.
+        }
 
         filteredItemList = new FilteredList<>(originalItemList, p -> true);
-        searchField.textProperty().addListener((obs, oldVal, newVal) -> applyFilter(newVal));
-        searchField.setOnAction(e -> applyFilter(searchField.getText()));
+
+        if (searchField != null) {
+            searchField.textProperty().addListener((obs, oldVal, newVal) -> applyFilter(newVal));
+            searchField.setOnAction(e -> applyFilter(searchField.getText()));
+        }
 
         populateFlowPaneFromFilteredList();
 
+        // Gán action cho Menu Ngôn ngữ và Logout
         if (logoutMenuItem != null) logoutMenuItem.setOnAction(e -> handleLogout());
-        else System.err.println("CẢNH BÁO: logoutMenuItem là null.");
+        if (langMenuItemVI != null) langMenuItemVI.setOnAction(e -> switchLanguage("vi"));
+        if (langMenuItemEN != null) langMenuItemEN.setOnAction(e -> switchLanguage("en"));
 
-        updateUITexts();
-        // Xóa dòng updateStatus(...) không cần thiết, FXML đã tự động set 'status.ready'
+        updateUITexts(); // Vẫn gọi để set text động ban đầu
     }
 
     // --- Helper Methods ---
 
-    // (updateStatus, showAlert không đổi)
     private void updateStatus(String message) { updateStatus(message, false); }
     private void updateStatus(String message, boolean isLoading) {
         Platform.runLater(() -> {
@@ -169,29 +214,41 @@ public class MainController {
         });
     }
 
-    // (updateUITexts không đổi - vẫn set động, không dùng i18n cho các label này)
+    /**
+     * Cập nhật các Label và Button có text phụ thuộc vào loại Metadata đang chọn.
+     * Đã sửa lỗi MissingFormatArgumentException.
+     */
     private void updateUITexts() {
-        String singular = currentType.singularName.toLowerCase();
-        String plural = currentType.pluralName;
-        // Các TitledPane text đã được set bởi FXML (ví dụ: %pane.copy.title)
-        // Chỉ cập nhật các label/button được tạo động
-        clearParentLabel.setText("ID Thư mục Đích (Xóa mọi " + singular + " trong thư mục này):");
-        btnRunClearParent.setText("Thực thi Xóa " + plural + " (Theo Thư mục)");
-        clearSpecificLabel.setText("Tìm và Chọn " + currentType.singularName + " cần xóa (Xóa " + singular + " này khỏi MỌI item):");
-        btnRunClearSpecific.setText("Thực thi Xóa " + currentType.singularName + " đã chọn");
-        // btnRunCopy text đã được set bởi FXML
+        if (resources == null || currentType == null) return;
+
+        if(clearParentLabel == null || btnRunClearParent == null || clearSpecificLabel == null || btnRunClearSpecific == null) {
+            return;
+        }
+
+        String singularName = resources.getString(currentType.singularKey).toLowerCase();
+        String pluralName = resources.getString(currentType.pluralKey);
+
+        clearParentLabel.setText(String.format(resources.getString("label.clearParentDynamic"), singularName));
+        btnRunClearParent.setText(String.format(resources.getString("button.clearParentDynamic"), pluralName));
+        // FIX LỖI: Cung cấp đủ 2 tham số (%s) cho chuỗi định dạng "label.clearSpecificDynamic"
+        clearSpecificLabel.setText(String.format(resources.getString("label.clearSpecificDynamic"), singularName, singularName));
+        btnRunClearSpecific.setText(String.format(resources.getString("button.clearSpecificDynamic"), singularName));
     }
 
-    // (clearSelectionAndSearch, loadCurrentTypeList, applyFilter, getItemName, getUserData, populateFlowPaneFromFilteredList, getDisplayNameFromToggle, runTask không đổi)
-    // ... (Giữ nguyên các hàm này) ...
     private void clearSelectionAndSearch() {
         selectionToggleGroup.selectToggle(null);
-        searchField.clear();
+        if(searchField != null) searchField.clear();
     }
+
     private void loadCurrentTypeList() {
-        String taskName = "Tải danh sách " + currentType.pluralName;
+        // KIỂM TRA SERVICES TRƯỚC KHI CHẠY để tránh lỗi "loadCurrentTypeList bị gọi trước khi service sẵn sàng"
+        if (itemService == null) {
+            System.err.println("loadCurrentTypeList bị gọi trước khi service sẵn sàng. Bỏ qua lần gọi này.");
+            return;
+        }
+        String taskName = String.format(resources.getString("task.loading"), resources.getString(currentType.pluralKey));
         runTask(taskName, () -> {
-            updateStatus("Đang " + taskName.toLowerCase() + "...", true);
+            updateStatus(taskName + "...", true);
             List<?> rawList = Collections.emptyList();
             try {
                 switch (currentType) {
@@ -201,17 +258,18 @@ public class MainController {
                     case TAG:    rawList = tagService.getListTags(); break;
                 }
             } catch (Exception e) {
-                System.err.println("Lỗi API khi tải danh sách " + currentType.pluralName);
+                System.err.println("Lỗi API khi tải danh sách " + currentType.pluralKey);
                 rawList = Collections.emptyList();
             }
             final List<?> finalList = rawList != null ? rawList : Collections.emptyList();
             Platform.runLater(() -> {
                 originalItemList.setAll(finalList);
                 populateFlowPaneFromFilteredList();
-                updateStatus("Tải xong " + currentType.pluralName + ". (" + originalItemList.size() + " mục)", false);
+                updateStatus(String.format(resources.getString("status.loaded"), resources.getString(currentType.pluralKey), originalItemList.size()), false);
             });
         });
     }
+
     private void applyFilter(String filterText) {
         String lowerCaseFilter = filterText == null ? "" : filterText.toLowerCase().trim();
         filteredItemList.setPredicate(item -> {
@@ -239,6 +297,8 @@ public class MainController {
         return null;
     }
     private void populateFlowPaneFromFilteredList() {
+        if (selectionFlowPane == null) return;
+
         selectionFlowPane.getChildren().clear();
         selectionToggleGroup.getToggles().clear();
         for (Object item : filteredItemList) {
@@ -274,20 +334,20 @@ public class MainController {
     }
     private void runTask(String taskName, Runnable task) {
         if (studioService == null || genresService == null || peopleService == null || tagService == null || itemService == null) {
-            updateStatus("LỖI: Services chưa được khởi tạo.");
-            showAlert(Alert.AlertType.ERROR, "Lỗi Service", "Các service chưa sẵn sàng, vui lòng thử lại sau.");
+            updateStatus(resources.getString("error.service.notReady"), false);
+            showAlert(Alert.AlertType.ERROR, resources.getString("error.service.title"), resources.getString("error.service.notReady"));
             return;
         }
-        updateStatus("Đang thực thi: " + taskName + "...", true);
+        updateStatus(String.format(resources.getString("status.executing"), taskName) + "...", true);
         Thread thread = new Thread(() -> {
             try {
                 task.run();
             } catch (Exception e) {
-                String errorMsg = "LỖI khi thực thi " + taskName + ": " + e.getMessage();
+                String errorMsg = String.format(resources.getString("error.task.failed"), taskName, e.getMessage());
                 System.err.println("\n!!! ĐÃ XẢY RA LỖI !!!");
                 e.printStackTrace();
                 updateStatus(errorMsg, false);
-                showAlert(Alert.AlertType.ERROR, "Lỗi Thực Thi", errorMsg);
+                showAlert(Alert.AlertType.ERROR, resources.getString("error.task.title"), errorMsg);
             }
         });
         thread.setDaemon(true);
@@ -296,35 +356,39 @@ public class MainController {
 
     // --- Event Handlers ---
 
-    // (handleLogout, btnReloadListClick không đổi)
     @FXML private void handleLogout() {
         if (app != null) app.handleLogout();
         else {
-            updateStatus("Lỗi: Không thể đăng xuất (app is null).");
-            showAlert(Alert.AlertType.ERROR, "Lỗi Đăng Xuất", "Tham chiếu ứng dụng không hợp lệ.");
+            updateStatus(resources.getString("error.logout.appNull"), false);
+            showAlert(Alert.AlertType.ERROR, resources.getString("error.logout.title"), resources.getString("error.logout.appNull"));
         }
     }
+
+    private void switchLanguage(String langCode) {
+        if (app != null) {
+            app.switchLanguage(langCode);
+        }
+    }
+
     @FXML private void btnReloadListClick() {
         searchField.clear();
         loadCurrentTypeList();
     }
 
-    // --- Handlers cho Copy ---
+    // --- Handlers cho Copy (Tab 1) ---
     @FXML private void btnRunCopyClick() {
         String copyFromId = txtCopyFromItemID.getText();
         String copyToId = txtCopyToParentID.getText();
 
         if (copyFromId == null || copyFromId.trim().isEmpty() || copyToId == null || copyToId.trim().isEmpty()) {
-            // TRƯỚC: showAlert(Alert.AlertType.WARNING, "Thiếu thông tin", "Vui lòng nhập ID Item Mẫu và ID Thư mục Đích.");
             showAlert(Alert.AlertType.WARNING,
                     resources.getString("alert.missingInfo.title"),
-                    resources.getString("alert.missingInfo.contentCopy")); // <-- SỬA DÒNG NÀY
+                    resources.getString("alert.missingInfo.contentCopy"));
             return;
         }
-        // (Rest of the method không đổi)
         final String finalCopyFromId = copyFromId.trim();
         final String finalCopyToId = copyToId.trim();
-        String taskName = "Copy " + currentType.pluralName;
+        String taskName = String.format(resources.getString("task.copy"), resources.getString(currentType.pluralKey));
         runTask(taskName, () -> {
             boolean success = false;
             try {
@@ -334,28 +398,27 @@ public class MainController {
                     case PEOPLE: peopleService.copyPeople(finalCopyFromId, finalCopyToId); success = true; break;
                     case TAG:    tagService.copyTags(finalCopyFromId, finalCopyToId); success = true; break;
                 }
-                if(success) updateStatus("Hoàn thành: " + taskName + " thành công!", false);
-                else updateStatus("Lỗi: Không thể thực hiện " + taskName + " cho loại không xác định.", false);
+                // BỎ ALERT - CHỈ UPDATE STATUS
+                if(success) updateStatus(String.format(resources.getString("status.task.success"), taskName), false);
+                else updateStatus(String.format(resources.getString("error.task.unknown"), taskName), false);
             } catch (Exception e) {
-                updateStatus("Lỗi khi " + taskName + ": " + e.getMessage(), false);
+                updateStatus(String.format(resources.getString("error.task.failed"), taskName, e.getMessage()), false);
             }
         });
     }
 
 
-    // --- Handlers cho Xóa Theo Thư Mục ---
+    // --- Handlers cho Xóa Theo Thư Mục (Tab 1) ---
     @FXML private void btnRunClearParentClick() {
         String parentId = txtClearByParentID.getText();
         if (parentId == null || parentId.trim().isEmpty()) {
-            // TRƯỚC: showAlert(Alert.AlertType.WARNING, "Thiếu thông tin", "Vui lòng nhập ID Thư mục Đích.");
             showAlert(Alert.AlertType.WARNING,
                     resources.getString("alert.missingInfo.title"),
-                    resources.getString("alert.missingInfo.contentClearParent")); // <-- SỬA DÒNG NÀY
+                    resources.getString("alert.missingInfo.contentClearParent"));
             return;
         }
-        // (Rest of the method không đổi)
         final String finalParentId = parentId.trim();
-        String taskName = "Xóa " + currentType.pluralName + " theo thư mục";
+        String taskName = String.format(resources.getString("task.clearParent"), resources.getString(currentType.pluralKey));
         runTask(taskName, () -> {
             boolean success = false;
             try {
@@ -365,28 +428,27 @@ public class MainController {
                     case PEOPLE: peopleService.clearPeopleByParentID(finalParentId); success = true; break;
                     case TAG:    tagService.clearTagsByParentID(finalParentId); success = true; break;
                 }
-                if(success) updateStatus("Hoàn thành: " + taskName + " thành công!", false);
-                else updateStatus("Lỗi: Không thể thực hiện " + taskName + " cho loại không xác định.", false);
+                // BỎ ALERT - CHỈ UPDATE STATUS
+                if(success) updateStatus(String.format(resources.getString("status.task.success"), taskName), false);
+                else updateStatus(String.format(resources.getString("error.task.unknown"), taskName), false);
             } catch (Exception e) {
-                updateStatus("Lỗi khi " + taskName + ": " + e.getMessage(), false);
+                updateStatus(String.format(resources.getString("error.task.failed"), taskName, e.getMessage()), false);
             }
         });
     }
 
-    // --- Handlers cho Xóa Cụ Thể ---
+    // --- Handlers cho Xóa Cụ Thể (Tab 1) ---
     @FXML private void btnRunClearSpecificClick() {
         Toggle selectedToggle = selectionToggleGroup.getSelectedToggle();
         if (selectedToggle == null || selectedToggle.getUserData() == null) {
-            // TRƯỚC: showAlert(Alert.AlertType.WARNING, "Chưa chọn", "Vui lòng chọn một " + currentType.singularName + " từ danh sách.");
             showAlert(Alert.AlertType.WARNING,
                     resources.getString("alert.notSelected.title"),
-                    resources.getString("alert.notSelected.content")); // <-- SỬA DÒNG NÀY
+                    resources.getString("alert.notSelected.content"));
             return;
         }
-        // (Rest of the method không đổi)
         String idOrNameToClear = (String) selectedToggle.getUserData();
         String nameSelected = getDisplayNameFromToggle(selectedToggle);
-        String taskName = "Xóa " + currentType.singularName + " cụ thể: " + nameSelected;
+        String taskName = String.format(resources.getString("task.clearSpecific"), resources.getString(currentType.singularKey), nameSelected);
         runTask(taskName, () -> {
             boolean success = false;
             try {
@@ -397,53 +459,50 @@ public class MainController {
                     case TAG:    tagService.clearTags(idOrNameToClear); success = true; break;
                 }
                 if(success) {
-                    updateStatus("Hoàn thành: " + taskName + " thành công!", false);
+                    // BỎ ALERT - CHỈ UPDATE STATUS
+                    updateStatus(String.format(resources.getString("status.task.success"), taskName), false);
                     Platform.runLater(this::loadCurrentTypeList);
                 } else {
-                    updateStatus("Lỗi: Không thể thực hiện " + taskName + " cho loại không xác định.", false);
+                    updateStatus(String.format(resources.getString("error.task.unknown"), taskName), false);
                 }
             } catch (Exception e) {
-                updateStatus("Lỗi khi " + taskName + ": " + e.getMessage(), false);
+                updateStatus(String.format(resources.getString("error.task.failed"), taskName, e.getMessage()), false);
             }
         });
     }
 
-    // --- Handlers cho Export JSON ---
+    // --- Handlers cho Export JSON (Tab 2) ---
     @FXML
     private void btnRunExportJsonClick() {
         String parentId = txtExportJsonParentID.getText();
         if (parentId == null || parentId.trim().isEmpty()) {
-            // TRƯỚC: showAlert(Alert.AlertType.WARNING, "Thiếu thông tin", "Vui lòng nhập ID Thư mục Cha (Parent ID).");
             showAlert(Alert.AlertType.WARNING,
                     resources.getString("alert.missingInfo.title"),
-                    resources.getString("alert.missingInfo.contentExport")); // <-- SỬA DÒNG NÀY
+                    resources.getString("alert.missingInfo.contentExport"));
             return;
         }
-        // (Rest of the method không đổi)
         final String finalParentId = parentId.trim();
         DirectoryChooser directoryChooser = new DirectoryChooser();
-        directoryChooser.setTitle("Chọn thư mục để lưu file JSON");
+        directoryChooser.setTitle(resources.getString("chooser.exportJson.title"));
         File selectedDirectory = directoryChooser.showDialog(btnRunExportJson.getScene().getWindow());
         if (selectedDirectory == null) {
-            updateStatus("Đã hủy: Người dùng không chọn thư mục.", false);
+            updateStatus(resources.getString("status.cancelled"), false);
             return;
         }
-        String taskName = "Export JSON từ Parent ID: " + finalParentId;
+        String taskName = String.format(resources.getString("task.exportJson"), finalParentId);
         runTask(taskName, () -> {
             exportJsonTask(finalParentId, selectedDirectory);
         });
     }
 
-    // (exportJsonTask không đổi)
     private void exportJsonTask(String parentId, File directory) {
-        updateStatus("Đang lấy danh sách item con từ Parent ID: " + parentId + "...", true);
+        updateStatus(String.format(resources.getString("status.export.gettingList"), parentId) + "...", true);
         List<BaseItemDto> itemsToExport = itemService.getListItemByParentID(parentId, null, null, true);
         if (itemsToExport == null || itemsToExport.isEmpty()) {
-            updateStatus("Không tìm thấy item con nào trong Parent ID: " + parentId, false);
-            showAlert(Alert.AlertType.INFORMATION, "Hoàn thành", "Không tìm thấy item con nào để export.");
+            updateStatus(String.format(resources.getString("status.export.noItems"), parentId), false);
             return;
         }
-        updateStatus("Tìm thấy " + itemsToExport.size() + " item. Bắt đầu export...", true);
+        updateStatus(String.format(resources.getString("status.export.found"), itemsToExport.size()), true);
         int successCount = 0;
         int errorCount = 0;
         String directoryPath = directory.getAbsolutePath();
@@ -456,7 +515,7 @@ public class MainController {
                 errorCount++;
                 continue;
             }
-            updateStatus("Đang export: (" + (i + 1) + "/" + itemsToExport.size() + ") " + itemName, true);
+            updateStatus(String.format(resources.getString("status.export.progress"), (i + 1), itemsToExport.size(), itemName), true);
             try {
                 BaseItemDto fullItem = itemService.getInforItem(itemId);
                 if (fullItem == null) {
@@ -481,8 +540,88 @@ public class MainController {
                 errorCount++;
             }
         }
-        String finalMessage = "Hoàn thành export! Thành công: " + successCount + ", Lỗi: " + errorCount + ". Đã lưu tại: " + directoryPath;
+        String finalMessage = String.format(resources.getString("status.export.done"), successCount, errorCount, directoryPath);
         updateStatus(finalMessage, false);
-        showAlert(Alert.AlertType.INFORMATION, "Export Hoàn tất", finalMessage);
+    }
+
+    // --- Handlers cho BATCH PROCESS (Tab 2) ---
+    @FXML
+    private void btnRunBatchProcessClick() {
+        String parentId = txtBatchProcessParentID.getText();
+        if (parentId == null || parentId.trim().isEmpty()) {
+            showAlert(Alert.AlertType.WARNING,
+                    resources.getString("alert.missingInfo.title"),
+                    resources.getString("alert.missingInfo.contentBatchProcess"));
+            return;
+        }
+
+        final String finalParentId = parentId.trim();
+        String taskName = String.format(resources.getString("task.batchProcess"), finalParentId);
+        runTask(taskName, () -> {
+            batchProcessTask(finalParentId);
+        });
+    }
+
+    private void batchProcessTask(String parentId) {
+        updateStatus(String.format(resources.getString("status.batch.gettingList"), parentId) + "...", true);
+        List<BaseItemDto> itemsToProcess = itemService.getListItemByParentID(parentId, null, null, true); // true = recursive
+        if (itemsToProcess == null || itemsToProcess.isEmpty()) {
+            updateStatus(String.format(resources.getString("status.batch.noItems"), parentId), false);
+            return;
+        }
+
+        int total = itemsToProcess.size();
+        updateStatus(String.format(resources.getString("status.batch.found"), total), true);
+        int successCount = 0;
+        int skippedCount = 0;
+        int errorCount = 0;
+
+        for (int i = 0; i < total; i++) {
+            BaseItemDto listItem = itemsToProcess.get(i);
+            String itemId = listItem.getId();
+            String itemName = listItem.getName();
+            if (itemId == null) {
+                System.err.println("Bỏ qua item vì không có ID: " + itemName);
+                errorCount++;
+                continue;
+            }
+
+            updateStatus(String.format(resources.getString("status.batch.progress"), (i + 1), total, itemName), true);
+
+            try {
+                // 1. Lấy full info
+                BaseItemDto fullItem = itemService.getInforItem(itemId);
+                if (fullItem == null) {
+                    System.err.println("Lỗi: Không thể lấy full info cho item ID: " + itemId);
+                    errorCount++;
+                    continue;
+                }
+
+                // 2. Gọi hàm logic đã tối ưu
+                boolean hasChanged = itemService.checkAndProcessItemTitleAndDate(fullItem);
+
+                // 3. Update nếu cần
+                if (hasChanged) {
+                    if(itemService.updateInforItem(fullItem.getId(), fullItem)) {
+                        System.out.println("Update thành công: " + itemName);
+                        successCount++;
+                    } else {
+                        System.err.println("Update thất bại (API): " + itemName);
+                        errorCount++;
+                    }
+                } else {
+                    System.out.println("Bỏ qua (không thay đổi): " + itemName);
+                    skippedCount++;
+                }
+
+            } catch (Exception e) {
+                System.err.println("Lỗi nghiêm trọng khi xử lý item ID: " + itemId + " - " + e.getMessage());
+                e.printStackTrace();
+                errorCount++;
+            }
+        }
+
+        String finalMessage = String.format(resources.getString("status.batch.done"), successCount, skippedCount, errorCount);
+        updateStatus(finalMessage, false);
     }
 }

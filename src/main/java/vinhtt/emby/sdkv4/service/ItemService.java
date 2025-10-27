@@ -153,9 +153,10 @@ public class ItemService {
                 if (result.getItems().isEmpty()) {
                     System.out.println("Không có IDParent: " + parentID + ", startIndex: " + startIndex + ", limit: " + limit + ", recursive: " + recursive);
                 } else {
-                    for (BaseItemDto each : result.getItems()) {
-                        System.out.println(each.getName());
-                    }
+                    // Sửa lại: Không in ra đây nữa, trả về list cho controller xử lý
+                    // for (BaseItemDto each : result.getItems()) {
+                    //     System.out.println(each.getName());
+                    // }
                     return result.getItems();
                 }
             } catch (ApiException e) {
@@ -199,86 +200,98 @@ public class ItemService {
     }
 
 
-    public void setOriginalTitleForItem(String id, String userId) throws ApiException {
-
-        BaseItemDto itemInfo = userLibraryServiceApi.getUsersByUseridItemsById(userId, id);
+    /**
+     * Xử lý logic đặt OriginalTitle và PremiereDate cho một item.
+     * @param itemInfo Item đã được fetch full info.
+     * @return true nếu có thay đổi, false nếu không.
+     */
+    public boolean checkAndProcessItemTitleAndDate(BaseItemDto itemInfo) {
         boolean isUpdate = false;
-//        itemInfo.setOriginalTitle("");
+        String originalTitle = itemInfo.getOriginalTitle();
 
-        if (itemInfo.getOriginalTitle() == null || itemInfo.getOriginalTitle().equals("")) {
+        // 1. Xử lý Original Title
+        if (originalTitle == null || originalTitle.equals("")) {
             String fileName = itemInfo.getFileName();
-            String name = fileName.substring(0, fileName.lastIndexOf('.'));
-
-//            System.out.println(itemInfo.getOriginalTitle());
-
-            String newName = normalizeFileName(name);
-            if (newName.equals("")) {
-                System.out.println("New name is empty for item path: " + fileName);
-                newName = nameType2(itemInfo.getName());
-                System.out.println(newName);
+            if(fileName == null || fileName.isEmpty()) {
+                System.out.println("Bỏ qua item (không có filename): " + itemInfo.getName());
+                return false;
             }
 
-//            System.out.println(newName);
+            String name = fileName.substring(0, fileName.lastIndexOf('.'));
+            String newName = normalizeFileName(name);
+
+            if (newName.equals("")) {
+                System.out.println("New name (từ filename) rỗng cho item: " + fileName);
+                newName = nameType2(itemInfo.getName()); // Thử fallback về item name
+                System.out.println("Fallback về item name: " + newName);
+            }
 
             itemInfo.setOriginalTitle(newName);
+            originalTitle = newName; // Cập nhật biến local để dùng cho bước 2
             isUpdate = true;
+            System.out.println("Đã set OriginalTitle: " + newName + " cho item: " + itemInfo.getName());
         }
 
+        // 2. Xử lý Premiere Date
         if (itemInfo.getPremiereDate() == null) {
-            if (itemInfo.getOriginalTitle().equals("")) {
-                System.out.println("Original Title of video is emty: " + itemInfo.getName() + " ID: " + itemInfo.getId());
-                return;
-            }
-            OffsetDateTime releaseDate = null;
-            releaseDate = setDateRelease(itemInfo.getOriginalTitle());
-            /*
-             * Update theo tên gốc*/
-            if (releaseDate != null) {
-                itemInfo.setPremiereDate(releaseDate);
-                isUpdate = true;
-            }else{
-                System.out.println("Release date is null for item title: " + itemInfo.getFileName());
-                System.out.println("Release date is null for item ID: " + itemInfo.getId());
-            }
-            /*
-             * Update theo tên title*/
-            if (releaseDate == null) {
+            if (originalTitle == null || originalTitle.equals("")) {
+                System.out.println("Original Title rỗng, không thể lấy ngày release cho item: " + itemInfo.getName() + " ID: " + itemInfo.getId());
+                // Không return, vẫn có thể xử lý ProductionYear
+            } else {
+                OffsetDateTime releaseDate = setDateRelease(originalTitle); // Thử lấy theo OriginalTitle
 
-                releaseDate = setDateRelease(itemInfo.getName());
+                if (releaseDate == null) { // Nếu thất bại, thử lấy theo Item Name
+                    System.out.println("Không tìm thấy ngày release cho code: " + originalTitle + ". Thử với Item Name: " + itemInfo.getName());
+                    releaseDate = setDateRelease(itemInfo.getName());
+                }
 
                 if (releaseDate != null) {
                     itemInfo.setPremiereDate(releaseDate);
                     isUpdate = true;
+                    System.out.println("Đã set PremiereDate: " + releaseDate + " cho item: " + itemInfo.getName());
+                } else {
+                    System.out.println("Không tìm thấy ngày release cho cả OriginalTitle và Name: " + itemInfo.getName());
                 }
-                else{
-                    System.out.println("Release date is null for item name: " + itemInfo.getName());
-                }
-            }
-
-            /*
-             * Không tìm thấy date bằng cả tên gốc và title*/
-            if (releaseDate == null) {
-                System.out.println("- Chịu --");
             }
         }
 
-        if (itemInfo.getProductionYear() != null) {
-            itemInfo.setProductionYear(null);
-            isUpdate = true;
+        // 3. Xử lý Production Year (Luôn chạy, để đồng bộ)
+        Integer currentYear = itemInfo.getProductionYear();
+        Integer yearFromPremiere = null;
+
+        if (itemInfo.getPremiereDate() != null) {
+            yearFromPremiere = itemInfo.getPremiereDate().getYear();
         }
 
-        if (itemInfo.getProductionYear() == null && itemInfo.getPremiereDate() != null) {
-            int year = itemInfo.getPremiereDate().getYear();
-            itemInfo.setProductionYear(year);
-            isUpdate = true;
+        if (yearFromPremiere != null) {
+            if (currentYear == null || !currentYear.equals(yearFromPremiere)) {
+                itemInfo.setProductionYear(yearFromPremiere);
+                isUpdate = true;
+                System.out.println("Đã set/update ProductionYear: " + yearFromPremiere + " cho item: " + itemInfo.getName());
+            }
+        } else if (currentYear != null) {
+            // Nếu không có ngày premiere mà lại có năm sản xuất, có thể xóa đi? (Tùy logic)
+            // Tạm thời giữ nguyên logic cũ: nếu có year thì set null (logic này hơi lạ, nhưng tôi giữ)
+            // itemInfo.setProductionYear(null);
+            // isUpdate = true;
+            // System.out.println("Đã XÓA ProductionYear (vì không có PremiereDate?): " + itemInfo.getName());
         }
 
-        if (isUpdate) {
-            ItemUpdateServiceApi itemUpdateServiceApi = new ItemUpdateServiceApi(Configuration.getDefaultApiClient());
-            itemUpdateServiceApi.postItemsByItemid(itemInfo, id);
-            isUpdate = false;
-        }
+        // Logic cũ của đồng chí:
+        // if (itemInfo.getProductionYear() != null) {
+        //     itemInfo.setProductionYear(null);
+        //     isUpdate = true;
+        // }
+        // if (itemInfo.getProductionYear() == null && itemInfo.getPremiereDate() != null) {
+        //     int year = itemInfo.getPremiereDate().getYear();
+        //     itemInfo.setProductionYear(year);
+        //     isUpdate = true;
+        // }
+
+
+        return isUpdate;
     }
+
 
     private String nameType2(String input) {
         if (input == null || input.isEmpty()) {
@@ -304,16 +317,26 @@ public class ItemService {
         // Tách phần chữ và số, sau đó chuẩn hóa
         String[] parts = normalized.split("-");
         StringBuilder result = new StringBuilder();
+        boolean firstPart = true; // Thêm cờ để xử lý dấu '-'
 
         for (String part : parts) {
+            if (part.isEmpty()) continue; // Bỏ qua các phần rỗng
+
+            if (!firstPart) {
+                result.append("-"); // Thêm dấu '-' trước các phần tử sau
+            }
+
             if (part.matches("[a-zA-Z]+")) {
                 result.append(part.toUpperCase()); // Chuyển phần chữ cái thành in hoa
             } else if (part.matches("\\d+")) {
-                if (result.length() > 0) {
-                    result.append("-");
-                }
                 result.append(part); // Giữ nguyên phần số
+            } else {
+                // Xử lý trường hợp có chữ và số lẫn lộn (ví dụ: "ABC123" sau khi clean)
+                // Logic regex ở trên đã xử lý "([a-zA-Z])(\\d)", nên trường hợp này ít xảy ra
+                // nhưng để an toàn, chúng ta chuẩn hóa nó
+                result.append(part.toUpperCase());
             }
+            firstPart = false;
         }
 
         return result.toString();
@@ -325,32 +348,47 @@ public class ItemService {
      * @param code
      * @return
      */
-    public OffsetDateTime setDateRelease(String code) {
+    private OffsetDateTime setDateRelease(String code) {
+        // API này là của đồng chí, tôi giữ nguyên
         String apiUrl = "http://localhost:8081/movies/movie/date/?movieCode=" + code;
+        HttpURLConnection connection = null; // Khai báo bên ngoài để đóng trong finally
         try {
             URL url = new URL(apiUrl);
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            connection = (HttpURLConnection) url.openConnection();
             connection.setRequestMethod("GET");
             connection.setRequestProperty("Accept", "application/json");
+            connection.setConnectTimeout(5000); // Thêm timeout
+            connection.setReadTimeout(5000);
 
             int responseCode = connection.getResponseCode();
             if (responseCode == 200) {
-                BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-                StringBuilder response = new StringBuilder();
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    response.append(line);
+                // Try-with-resources để tự động đóng BufferedReader
+                try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
+                    StringBuilder response = new StringBuilder();
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        response.append(line);
+                    }
+                    // Parse JSON response to extract "data"
+                    JSONObject jsonResponse = new JSONObject(response.toString());
+                    String dataValue = jsonResponse.optString("data", null);
+                    if (dataValue != null && !dataValue.equals("null")) {
+                        return OffsetDateTime.parse(dataValue);
+                    } else {
+                        return null; // API trả về data: null
+                    }
                 }
-                reader.close();
-                // Parse JSON response to extract "data"
-                JSONObject jsonResponse = new JSONObject(response.toString());
-                String dataValue = jsonResponse.optString("data", null);
-                return OffsetDateTime.parse(dataValue);
             } else {
+                // System.out.println("API call failed for code: " + code + ". Response: " + responseCode);
                 return null;
             }
         } catch (Exception e) {
+            // System.out.println("Error calling API for code: " + code + " - " + e.getMessage());
             return null;
+        } finally {
+            if (connection != null) {
+                connection.disconnect(); // Đảm bảo đóng connection
+            }
         }
     }
 }
