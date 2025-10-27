@@ -210,7 +210,7 @@ public class ItemService {
         String originalTitle = itemInfo.getOriginalTitle();
 
         // 1. Xử lý Original Title
-        if (originalTitle == null || originalTitle.equals("")) {
+        if (true || originalTitle == null || originalTitle.equals("")) {
             String fileName = itemInfo.getFileName();
             if(fileName == null || fileName.isEmpty()) {
                 System.out.println("Bỏ qua item (không có filename): " + itemInfo.getName());
@@ -307,51 +307,65 @@ public class ItemService {
             return "";
         }
 
-        // 1. Loại bỏ các hậu tố chất lượng (HD, 4K, 1080P) với mọi ký tự phân tách phổ biến (., -, _)
-        // và các lỗi cú pháp ngoặc []
+        // 1. Loại bỏ các hậu tố và ký tự đặc biệt phổ biến (tùy chọn)
+        // Giúp chuẩn hóa chuỗi trước khi tìm kiếm mẫu chính.
         String cleanedInput = input
-                // Loại bỏ các mẫu [4K], [HD], v.v. (kể cả lỗi cú pháp như [4K})
+                // Loại bỏ các mẫu [4K], .HD, v.v. (giúp giảm nhiễu)
                 .replaceAll("(?i)[._-]?[\\p{Punct}&&[^.-_]]*4k[\\p{Punct}&&[^.-_]]*$", "")
-                .replaceAll("(?i)[._-][\\p{Punct}&&[^.-_]]*(HD|1080P|720P)[\\p{Punct}&&[^.-_]]*$", "")
-                // Loại bỏ các hậu tố sau khi đã dọn dẹp ký tự đặc biệt xung quanh
-                .replaceAll("(?i)[._-](4k|hd|1080p|720p)$", "");
+                .replaceAll("(?i)[._-](HD|1080P|720P)$", "")
+                // Thay thế tất cả các ký tự không phải chữ/số/gạch ngang bằng dấu gạch ngang
+                .replaceAll("[^a-zA-Z0-9-]", "-");
 
         // 2. Chèn dấu '-' giữa phần chữ và số (ví dụ: ABC317 -> ABC-317)
+        // Đây là bước quan trọng để tạo ra dấu gạch ngang phân tách chính.
         String normalized = cleanedInput
-                .replaceAll("([a-zA-Z])(\\d)", "$1-$2") // Chữ theo sau là số
-                .replaceAll("(\\d)([a-zA-Z])", "$1-$2"); // Số theo sau là chữ
+                .replaceAll("([a-zA-Z])(\\d)", "$1-$2");
 
-        // 3. Thay thế MỌI ký tự không phải chữ/số/gạch ngang bằng dấu '-'
+        // 3. Chuẩn hóa và Trích xuất chỉ [Chữ]-[Số]
+        // Loại bỏ mọi thứ sau dấu gạch ngang đầu tiên nếu có, và hợp nhất các dấu gạch ngang thừa.
         normalized = normalized
-                .replaceAll("[^a-zA-Z0-9-]", "-")
-                .replaceAll("-+", "-") // Loại bỏ dấu '-' thừa
+                .replaceAll("-+", "-") // Hợp nhất dấu gạch ngang thừa
                 .replaceAll("^-|-$", ""); // Loại bỏ dấu '-' ở đầu/cuối chuỗi
 
-        // 4. Tách và chuẩn hóa các phần, đồng thời loại bỏ các hậu tố còn sót lại
+        // Tách chuỗi theo dấu gạch ngang
         String[] parts = normalized.split("-");
         StringBuilder result = new StringBuilder();
-        boolean firstPart = true;
+
+        // TÌM PHẦN CHỮ VÀ PHẦN SỐ ĐẦU TIÊN
+        String partA = ""; // Phần chữ cái
+        String partB = ""; // Phần số
 
         for (String part : parts) {
             if (part.isEmpty()) continue;
 
-            // BỔ SUNG: Loại bỏ các phần tử hậu tố chất lượng SÓT LẠI sau khi đã bị tách
-            // Điều này xử lý triệt để các trường hợp như ABC-741-4K
-            if (part.matches("(?i)\\d*K|HD|1080P|720P|MP4|MKV|COM|NET|ORG")) {
+            // Gán phần chữ cái đầu tiên tìm được
+            if (partA.isEmpty() && part.matches("[a-zA-Z]+")) {
+                partA = part;
                 continue;
             }
 
-            if (!firstPart) {
-                result.append("-");
+            // Gán phần số đầu tiên tìm được
+            if (!partA.isEmpty() && partB.isEmpty() && part.matches("\\d+")) {
+                partB = part;
+                // DỪNG LẠI NGAY LẬP TỨC để đảm bảo không có phần tử thứ 3 nào được thêm vào
+                break;
             }
-
-            // Đảm bảo phần chữ cái được in hoa
-            result.append(part.toUpperCase());
-
-            firstPart = false;
         }
 
-        return result.toString();
+        // 4. Xây dựng chuỗi đầu ra theo định dạng [CHỮ]-[SỐ]
+        if (!partA.isEmpty() && !partB.isEmpty()) {
+            // Định dạng ABC-123
+            return partA.toUpperCase() + "-" + partB;
+        } else if (!partA.isEmpty()) {
+            // Nếu chỉ có phần chữ (VD: ABC)
+            return partA.toUpperCase();
+        } else if (!partB.isEmpty()) {
+            // Nếu chỉ có phần số (VD: 123)
+            return partB;
+        } else {
+            // Trường hợp không tìm thấy phần chữ hoặc số
+            return "";
+        }
     }
 
 
