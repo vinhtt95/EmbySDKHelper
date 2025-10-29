@@ -280,16 +280,58 @@ public class TagService {
                 itemDto = this.itemService.getInforItem(eachItemOfTagName.getId());
 
                 if (itemDto != null) {
-                    itemDto.getTagItems().removeIf(tag -> tag.getName() != null && tag.getName().equals(tagName));
+                    boolean removed = itemDto.getTagItems().removeIf(tag -> tag.getName() != null && tag.getName().equals(tagName));
 
                     // Dùng this.itemService
-                    if(this.itemService.updateInforItem(eachItemOfTagName.getId(),itemDto)) {
-                        System.out.println("Update success "+eachItemOfTagName.getName());
+                    if(removed && this.itemService.updateInforItem(eachItemOfTagName.getId(),itemDto)) {
+                        System.out.println("Update success (clear) "+eachItemOfTagName.getName());
+                    } else if (!removed) {
+                        System.out.println("Item did not contain tag (clear): " + eachItemOfTagName.getName());
                     }
                 }
             }
         }
     }
+
+    /**
+     * THÊM HÀM MỚI: Đổi tên một Tag (bằng cách xóa cũ, thêm mới)
+     * @param oldName Tên tag cũ
+     * @param newName Tên tag mới (đã serialize nếu là JSON)
+     */
+    public void updateTag(String oldName, String newName) {
+        List<BaseItemDto> listItem = getListItemByTagId(oldName, null, null, true);
+
+        if(listItem == null || listItem.isEmpty()){
+            System.out.println("Not found item for tag to update: " + oldName);
+            return;
+        }
+
+        BaseItemDto item = null;
+        for (BaseItemDto eachItem : listItem) {
+            item = this.itemService.getInforItem(eachItem.getId());
+            if (item == null) continue;
+
+            // 1. Xóa tag cũ
+            boolean removed = item.getTagItems().removeIf(tag -> tag.getName() != null && tag.getName().equals(oldName));
+
+            if(removed) {
+                // 2. Tạo và thêm tag mới
+                NameLongIdPair newTag = new NameLongIdPair();
+                newTag.setName(newName);
+                item.getTagItems().add(newTag);
+
+                // 3. Update item
+                if (this.itemService.updateInforItem(eachItem.getId(), item)) {
+                    System.out.println("Update success (rename) " + eachItem.getName());
+                } else {
+                    System.err.println("Update failed (rename) " + eachItem.getName());
+                }
+            } else {
+                System.out.println("Item did not contain tag (rename): " + eachItem.getName());
+            }
+        }
+    }
+
 
     public void copyTags(String itemCopyID, String parentID) {
         // Bỏ dòng này
@@ -320,14 +362,17 @@ public class TagService {
             System.out.println("ID: " + eachItemPaste.getId()+ " Name: " + eachItemPaste.getName());
             // Dùng this.itemService
             itemPaste = this.itemService.getInforItem(eachItemPaste.getId());
+            if (itemPaste == null) continue;
 
             List<NameLongIdPair> listTagsItemPaste = itemPaste.getTagItems();
 
-            itemPaste.getStudios().clear();
+            // LỖI LOGIC GỐC: Bạn đang clear Studios thay vì Tags
+            // itemPaste.getStudios().clear(); // <-- Lỗi ở đây
+            itemPaste.getTagItems().clear(); // <-- Sửa lỗi
 
             listTagsItemPaste.addAll(itemCopy.getTagItems());
 
-            for (NameLongIdPair eachTagsPaste : itemPaste.getStudios()) {
+            for (NameLongIdPair eachTagsPaste : itemPaste.getTagItems()) { // Sửa lỗi logic
                 System.out.println(eachTagsPaste.toString());
             }
 
@@ -354,6 +399,8 @@ public class TagService {
             System.out.println("ID: " + eachItem.getId()+ " Name: " + eachItem.getName());
             // Dùng this.itemService
             itemPaste = this.itemService.getInforItem(eachItem.getId());
+            if (itemPaste == null) continue;
+
             itemPaste.getTagItems().clear();
 
             // Dùng this.itemService

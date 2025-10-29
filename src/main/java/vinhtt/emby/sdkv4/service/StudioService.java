@@ -298,6 +298,14 @@ public class StudioService {
 
         if (listStudioBy != null) {
             BaseItemDto itemDto = null;
+            Long longStudioId;
+            try {
+                longStudioId = Long.parseLong(studioId);
+            } catch (NumberFormatException e) {
+                System.err.println("Invalid Studio ID format: " + studioId);
+                return;
+            }
+
             for (BaseItemDto eachItemOfStudio : listStudioBy) {
                 // Dùng this.itemService
                 itemDto = this.itemService.getInforItem(eachItemOfStudio.getId());
@@ -305,19 +313,65 @@ public class StudioService {
                 if (itemDto != null) {
                     List<NameLongIdPair> listStudios = itemDto.getStudios();
 
-
-                    listStudios.removeIf(eachStudio -> eachStudio.getId().equals(Long.parseLong(studioId)));
-
-//                    itemDto.getStudios().removeIf(studio -> studio.getId() != null && studio.getId().equals(studioId));
+                    boolean removed = listStudios.removeIf(eachStudio -> eachStudio.getId() != null && eachStudio.getId().equals(longStudioId));
 
                     // Dùng this.itemService
-                    if(this.itemService.updateInforItem(eachItemOfStudio.getId(),itemDto)) {
-                        System.out.println("Update success "+eachItemOfStudio.getName());
+                    if(removed && this.itemService.updateInforItem(eachItemOfStudio.getId(),itemDto)) {
+                        System.out.println("Update success (clear) "+eachItemOfStudio.getName());
                     }
                 }
             }
         }
     }
+
+    /**
+     * (HÀM MỚI) Cập nhật Studio (Xóa cũ, Thêm mới)
+     * @param oldStudioId ID của studio cũ
+     * @param newName Tên của studio mới (server sẽ tự tạo nếu chưa có)
+     */
+    public void updateStudio(String oldStudioId, String newName) {
+        List<BaseItemDto> listStudioBy = getListItemByStudioId(oldStudioId, null, null, true);
+        if (listStudioBy == null || listStudioBy.isEmpty()) {
+            System.out.println("Not found item for studio to update: " + oldStudioId);
+            return;
+        }
+
+        Long longStudioId;
+        try {
+            longStudioId = Long.parseLong(oldStudioId);
+        } catch (NumberFormatException e) {
+            System.err.println("Invalid Studio ID format for update: " + oldStudioId);
+            return;
+        }
+
+        BaseItemDto itemDto = null;
+        for (BaseItemDto eachItemOfStudio : listStudioBy) {
+            itemDto = this.itemService.getInforItem(eachItemOfStudio.getId());
+            if (itemDto == null) continue;
+
+            List<NameLongIdPair> listStudios = itemDto.getStudios();
+
+            // 1. Xóa studio cũ
+            boolean removed = listStudios.removeIf(eachStudio -> eachStudio.getId() != null && eachStudio.getId().equals(longStudioId));
+
+            if (removed) {
+                // 2. Tạo và thêm studio mới (chỉ cần Tên)
+                NameLongIdPair newStudio = new NameLongIdPair();
+                newStudio.setName(newName);
+                listStudios.add(newStudio);
+
+                // 3. Update item
+                if (this.itemService.updateInforItem(itemDto.getId(), itemDto)) {
+                    System.out.println("Update success (rename) " + eachItemOfStudio.getName());
+                } else {
+                    System.err.println("Update failed (rename) " + eachItemOfStudio.getName());
+                }
+            } else {
+                System.out.println("Item did not contain studio (rename): " + eachItemOfStudio.getName());
+            }
+        }
+    }
+
 
     /**
      * Thay thế toàn bộ studio cho các item con của parentID
@@ -353,6 +407,7 @@ public class StudioService {
             System.out.println("ID: " + eachItemPaste.getId()+ " Name: " + eachItemPaste.getName());
             // Dùng this.itemService
             itemPaste = this.itemService.getInforItem(eachItemPaste.getId());
+            if (itemPaste == null) continue;
 
             List<NameLongIdPair> listStudioItemPaste = itemPaste.getStudios();
 
@@ -391,6 +446,8 @@ public class StudioService {
             System.out.println("ID: " + eachItem.getId()+ " Name: " + eachItem.getName());
             // Dùng this.itemService
             itemPaste = this.itemService.getInforItem(eachItem.getId());
+            if (itemPaste == null) continue;
+
             itemPaste.getStudios().clear();
 
             // Dùng this.itemService

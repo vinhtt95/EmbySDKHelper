@@ -282,9 +282,10 @@ public class PeopleService {
             return;
         }else{
             System.out.println("List People of Item copy:");
-            List<NameLongIdPair> listPeopleItemCopy = itemCopy.getStudios();
-            for (NameLongIdPair eachStudio : listPeopleItemCopy) {
-                System.out.println("ID: " + eachStudio.getId() + " Name: " + eachStudio.getName());
+            // SỬA LỖI LOGIC: Dùng getPeople() chứ không phải getStudios()
+            List<BaseItemPerson> listPeopleItemCopy = itemCopy.getPeople();
+            for (BaseItemPerson eachPeople : listPeopleItemCopy) {
+                System.out.println("ID: " + eachPeople.getId() + " Name: " + eachPeople.getName());
             }
         }
 
@@ -300,6 +301,7 @@ public class PeopleService {
             System.out.println("ID: " + eachItemPaste.getId()+ " Name: " + eachItemPaste.getName());
             // Dùng this.itemService
             itemPaste = this.itemService.getInforItem(eachItemPaste.getId());
+            if (itemPaste == null) continue;
 
             List<BaseItemPerson> listPeopleItemPaste = itemPaste.getPeople();
 
@@ -334,6 +336,8 @@ public class PeopleService {
             System.out.println("ID: " + eachItem.getId()+ " Name: " + eachItem.getName());
             // Dùng this.itemService
             itemPaste = this.itemService.getInforItem(eachItem.getId());
+            if (itemPaste == null) continue;
+
             itemPaste.getPeople().clear();
 
             // Dùng this.itemService
@@ -343,26 +347,65 @@ public class PeopleService {
         }
     }
 
-    public void clearPeople(String studioId) {
+    public void clearPeople(String personId) {
         // Bỏ dòng này
         // ItemService itemService = new ItemService();
 
-        List<BaseItemDto> listStudioBy = getListPeopleByID(studioId, null, null, true);
+        List<BaseItemDto> listPeopleBy = getListPeopleByID(personId, null, null, true);
 
-        if (listStudioBy != null) {
+        if (listPeopleBy != null) {
             BaseItemDto itemDto = null;
-            for (BaseItemDto eachItemOfPeople : listStudioBy) {
+            for (BaseItemDto eachItemOfPeople : listPeopleBy) {
                 // Dùng this.itemService
                 itemDto = this.itemService.getInforItem(eachItemOfPeople.getId());
 
                 if (itemDto != null) {
-                    itemDto.getPeople().removeIf(person -> person.getId() != null && person.getId().equals(studioId));
+                    boolean removed = itemDto.getPeople().removeIf(person -> person.getId() != null && person.getId().equals(personId));
 
                     // Dùng this.itemService
-                    if(this.itemService.updateInforItem(eachItemOfPeople.getId(),itemDto)) {
-                        System.out.println("Update success "+eachItemOfPeople.getName());
+                    if(removed && this.itemService.updateInforItem(eachItemOfPeople.getId(),itemDto)) {
+                        System.out.println("Update success (clear) "+eachItemOfPeople.getName());
                     }
                 }
+            }
+        }
+    }
+
+    /**
+     * (HÀM MỚI) Cập nhật People (Xóa cũ, Thêm mới)
+     * @param oldPersonId ID của person cũ
+     * @param newName Tên của person mới (server sẽ tự tạo nếu chưa có)
+     */
+    public void updatePeople(String oldPersonId, String newName) {
+        List<BaseItemDto> listPeopleBy = getListPeopleByID(oldPersonId, null, null, true);
+        if (listPeopleBy == null || listPeopleBy.isEmpty()) {
+            System.out.println("Not found item for person to update: " + oldPersonId);
+            return;
+        }
+
+        BaseItemDto itemDto = null;
+        for (BaseItemDto eachItemOfPeople : listPeopleBy) {
+            itemDto = this.itemService.getInforItem(eachItemOfPeople.getId());
+            if (itemDto == null) continue;
+
+            // 1. Xóa person cũ
+            boolean removed = itemDto.getPeople().removeIf(person -> person.getId() != null && person.getId().equals(oldPersonId));
+
+            if (removed) {
+                // 2. Tạo và thêm person mới (chỉ cần Tên)
+                // (Server sẽ tự xử lý Type dựa trên thư viện)
+                BaseItemPerson newPerson = new BaseItemPerson();
+                newPerson.setName(newName);
+                itemDto.getPeople().add(newPerson);
+
+                // 3. Update item
+                if (this.itemService.updateInforItem(itemDto.getId(), itemDto)) {
+                    System.out.println("Update success (rename) " + eachItemOfPeople.getName());
+                } else {
+                    System.err.println("Update failed (rename) " + eachItemOfPeople.getName());
+                }
+            } else {
+                System.out.println("Item did not contain person (rename): " + eachItemOfPeople.getName());
             }
         }
     }

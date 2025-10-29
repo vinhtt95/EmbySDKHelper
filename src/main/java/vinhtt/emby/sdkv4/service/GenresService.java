@@ -296,8 +296,8 @@ public class GenresService {
 
         List<BaseItemDto> listItem = getListItemByGenreId(nameGenres, null, null, true);
 
-        if(listItem.isEmpty()){
-            System.out.println("Not found item");
+        if(listItem == null || listItem.isEmpty()){
+            System.out.println("Not found item for genre: " + nameGenres);
             return;
         }
 
@@ -311,15 +311,57 @@ public class GenresService {
 
             if (item != null) {
 //                System.out.println(item.getGenreItems());
-                item.getGenreItems().removeIf(genre -> genre.getName() != null && genre.getName().equals(nameGenres));
+                boolean removed = item.getGenreItems().removeIf(genre -> genre.getName() != null && genre.getName().equals(nameGenres));
 
                 // Dùng this.itemService
-                if (this.itemService.updateInforItem(eachItem.getId(), item)) {
-                    System.out.println("Update success " + eachItem.getName());
+                if (removed && this.itemService.updateInforItem(eachItem.getId(), item)) {
+                    System.out.println("Update success (clear) " + eachItem.getName());
+                } else if (!removed) {
+                    System.out.println("Item did not contain genre (clear): " + eachItem.getName());
                 }
             }
         }
     }
+
+    /**
+     * THÊM HÀM MỚI: Đổi tên một Genre (bằng cách xóa cũ, thêm mới)
+     * @param oldName Tên genre cũ
+     * @param newName Tên genre mới (đã serialize nếu là JSON)
+     */
+    public void updateGenre(String oldName, String newName) {
+        List<BaseItemDto> listItem = getListItemByGenreId(oldName, null, null, true);
+
+        if(listItem == null || listItem.isEmpty()){
+            System.out.println("Not found item for genre to update: " + oldName);
+            return;
+        }
+
+        BaseItemDto item = null;
+        for (BaseItemDto eachItem : listItem) {
+            item = this.itemService.getInforItem(eachItem.getId());
+            if (item == null) continue;
+
+            // 1. Xóa genre cũ
+            boolean removed = item.getGenreItems().removeIf(genre -> genre.getName() != null && genre.getName().equals(oldName));
+
+            if(removed) {
+                // 2. Tạo và thêm genre mới
+                NameLongIdPair newGenre = new NameLongIdPair();
+                newGenre.setName(newName);
+                item.getGenreItems().add(newGenre);
+
+                // 3. Update item
+                if (this.itemService.updateInforItem(eachItem.getId(), item)) {
+                    System.out.println("Update success (rename) " + eachItem.getName());
+                } else {
+                    System.err.println("Update failed (rename) " + eachItem.getName());
+                }
+            } else {
+                System.out.println("Item did not contain genre (rename): " + eachItem.getName());
+            }
+        }
+    }
+
 
     /**
      * Thay thế toàn bộ genres cho các item con của parentID bằng genres mẫu
@@ -355,6 +397,7 @@ public class GenresService {
             System.out.println("ID: " + eachItemPaste.getId()+ " Name: " + eachItemPaste.getName());
             // Dùng this.itemService
             itemPaste = this.itemService.getInforItem(eachItemPaste.getId());
+            if (itemPaste == null) continue;
 
             List<NameLongIdPair> listGenresItemPaste = itemPaste.getGenreItems();
 
@@ -393,6 +436,8 @@ public class GenresService {
             System.out.println("ID: " + eachItem.getId()+ " Name: " + eachItem.getName());
             // Dùng this.itemService
             itemPaste = this.itemService.getInforItem(eachItem.getId());
+            if (itemPaste == null) continue;
+
             itemPaste.getGenreItems().clear();
 
             // Dùng this.itemService

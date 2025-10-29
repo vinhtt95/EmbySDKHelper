@@ -24,6 +24,37 @@
 
         <TabPane VBox.vgrow="ALWAYS" tabClosingPolicy="UNAVAILABLE">
             <tabs>
+                <Tab text="%tab.batch">
+                    <content>
+                        <VBox spacing="15.0">
+                            <padding>
+                                <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+                            </padding>
+                            <children>
+                                <TitledPane fx:id="batchProcessPane" animated="false" text="%pane.batchProcess.title">
+                                    <content>
+                                        <VBox spacing="8.0">
+                                            <Label text="%label.batchProcessParentId" />
+                                            <TextField fx:id="txtBatchProcessParentID" promptText="%prompt.batchProcessParentId" />
+                                            <Button fx:id="btnRunBatchProcess" onAction="#btnRunBatchProcessClick" text="%button.batchProcess" />
+                                        </VBox>
+                                    </content>
+                                </TitledPane>
+
+                                <TitledPane fx:id="exportJsonPane" animated="false" text="%pane.exportJson.title">
+                                    <content>
+                                        <VBox spacing="8.0">
+                                            <Label text="%label.exportJsonParentId" />
+                                            <TextField fx:id="txtExportJsonParentID" promptText="%prompt.exportJsonParentId" />
+                                            <Button fx:id="btnRunExportJson" onAction="#btnRunExportJsonClick" text="%button.exportJson" />
+                                        </VBox>
+                                    </content>
+                                </TitledPane>
+                            </children>
+                        </VBox>
+                    </content>
+                </Tab>
+
                 <Tab text="%tab.metadata">
                     <content>
                         <VBox spacing="15.0">
@@ -74,7 +105,14 @@
                                                     </FlowPane>
                                                 </content>
                                             </ScrollPane>
-                                            <Button fx:id="btnRunClearSpecific" onAction="#btnRunClearSpecificClick" text="Loading..." />
+
+                                            <HBox alignment="CENTER_LEFT" spacing="10.0">
+                                                <children>
+                                                    <Button fx:id="btnRunClearSpecific" onAction="#btnRunClearSpecificClick" text="Loading..." />
+                                                    <Button fx:id="btnRunUpdateSpecific" onAction="#btnRunUpdateSpecificClick" text="Loading..." />
+                                                </children>
+                                            </HBox>
+
                                         </VBox>
                                     </content>
                                 </TitledPane>
@@ -83,36 +121,8 @@
                     </content>
                 </Tab>
 
-                <Tab text="%tab.batch">
-                    <content>
-                        <VBox spacing="15.0">
-                            <padding>
-                                <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
-                            </padding>
-                            <children>
-                                <TitledPane fx:id="batchProcessPane" animated="false" text="%pane.batchProcess.title">
-                                    <content>
-                                        <VBox spacing="8.0">
-                                            <Label text="%label.batchProcessParentId" />
-                                            <TextField fx:id="txtBatchProcessParentID" promptText="%prompt.batchProcessParentId" />
-                                            <Button fx:id="btnRunBatchProcess" onAction="#btnRunBatchProcessClick" text="%button.batchProcess" />
-                                        </VBox>
-                                    </content>
-                                </TitledPane>
 
-                                <TitledPane fx:id="exportJsonPane" animated="false" text="%pane.exportJson.title">
-                                    <content>
-                                        <VBox spacing="8.0">
-                                            <Label text="%label.exportJsonParentId" />
-                                            <TextField fx:id="txtExportJsonParentID" promptText="%prompt.exportJsonParentId" />
-                                            <Button fx:id="btnRunExportJson" onAction="#btnRunExportJsonClick" text="%button.exportJson" />
-                                        </VBox>
-                                    </content>
-                                </TitledPane>
-                            </children>
-                        </VBox>
-                    </content>
-                </Tab>
+
             </tabs>
         </TabPane>
         <HBox fx:id="statusBar" alignment="CENTER_LEFT" spacing="10.0" styleClass="status-bar">

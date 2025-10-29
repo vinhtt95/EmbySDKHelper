@@ -9,10 +9,15 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.fxml.FXML;
+import javafx.geometry.Insets;
 import javafx.scene.control.*;
 import javafx.scene.layout.FlowPane;
+import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.VBox;
 import javafx.stage.DirectoryChooser;
+import javafx.util.Callback;
 import javafx.util.StringConverter;
 import vinhtt.emby.sdkv4.service.*;
 import vinhtt.emby.sdkv4.ui.TagModel;
@@ -24,6 +29,7 @@ import java.io.IOException;
 import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.ResourceBundle;
 import embyclient.JSON.OffsetDateTimeTypeAdapter;
 
@@ -80,6 +86,7 @@ public class MainController {
     @FXML private ScrollPane selectionScrollPane;
     @FXML private FlowPane selectionFlowPane;
     @FXML private Button btnRunClearSpecific;
+    @FXML private Button btnRunUpdateSpecific; // <-- THÊM NÚT UPDATE
     private final ToggleGroup selectionToggleGroup = new ToggleGroup();
 
     // --- Vùng Công cụ Hàng loạt (Tab 2: Batch Tools) ---
@@ -221,7 +228,8 @@ public class MainController {
     private void updateUITexts() {
         if (resources == null || currentType == null) return;
 
-        if(clearParentLabel == null || btnRunClearParent == null || clearSpecificLabel == null || btnRunClearSpecific == null) {
+        // SỬA: Thêm btnRunUpdateSpecific
+        if(clearParentLabel == null || btnRunClearParent == null || clearSpecificLabel == null || btnRunClearSpecific == null || btnRunUpdateSpecific == null) {
             return;
         }
 
@@ -233,6 +241,8 @@ public class MainController {
         // FIX LỖI: Cung cấp đủ 2 tham số (%s) cho chuỗi định dạng "label.clearSpecificDynamic"
         clearSpecificLabel.setText(String.format(resources.getString("label.clearSpecificDynamic"), singularName, singularName));
         btnRunClearSpecific.setText(String.format(resources.getString("button.clearSpecificDynamic"), singularName));
+        // THÊM: Set text cho nút Update
+        btnRunUpdateSpecific.setText(String.format(resources.getString("button.updateSpecificDynamic"), singularName));
     }
 
     private void clearSelectionAndSearch() {
@@ -284,6 +294,12 @@ public class MainController {
         if (item instanceof UserLibraryTagItem) return ((UserLibraryTagItem) item).getName();
         return null;
     }
+
+    /**
+     * Lấy dữ liệu định danh cho item
+     * - STUDIO, PEOPLE: Trả về ID
+     * - GENRE, TAG: Trả về Tên (đã serialize nếu là JSON)
+     */
     private String getUserData(Object item) {
         switch (currentType) {
             case STUDIO:
@@ -292,10 +308,11 @@ public class MainController {
                 break;
             case GENRE:
             case TAG:
-                return getItemName(item);
+                return getItemName(item); // Tên chính là định danh
         }
         return null;
     }
+
     private void populateFlowPaneFromFilteredList() {
         if (selectionFlowPane == null) return;
 
@@ -308,11 +325,14 @@ public class MainController {
             String userData = getUserData(item);
             if (userData != null) {
                 ToggleButton chipButton = new ToggleButton();
-                chipButton.setUserData(userData);
+                chipButton.setUserData(userData); // UserData chứa ID (Studio/People) hoặc Name (Genre/Tag)
                 chipButton.setToggleGroup(selectionToggleGroup);
+
                 TagView tagView = new TagView(tagModel);
+                // SỬA: Không ẩn nút xóa/sửa nữa, vì chúng không có trên chip
                 tagView.getDeleteButton().setVisible(false);
                 tagView.getDeleteButton().setManaged(false);
+
                 chipButton.setGraphic(tagView);
                 chipButton.getStyleClass().add("chip-toggle-button");
                 if (tagModel.isJson()) chipButton.getStyleClass().add("tag-view-json");
@@ -470,6 +490,179 @@ public class MainController {
             }
         });
     }
+
+    // --- (SỬA) Handlers cho SỬA Cụ Thể (Tab 1) ---
+    @FXML
+    private void btnRunUpdateSpecificClick() {
+        Toggle selectedToggle = selectionToggleGroup.getSelectedToggle();
+        if (selectedToggle == null || selectedToggle.getUserData() == null) {
+            showAlert(Alert.AlertType.WARNING,
+                    resources.getString("alert.notSelected.title"),
+                    resources.getString("alert.notSelected.content"));
+            return;
+        }
+
+        // 1. LẤY DỮ LIỆU CŨ
+        // idOrName: Chứa ID (cho Studio/People) hoặc Tên (cho Genre/Tag)
+        String idOrName = (String) selectedToggle.getUserData();
+        TagModel oldTagModel = null;
+        if (selectedToggle instanceof ToggleButton && ((ToggleButton) selectedToggle).getGraphic() instanceof TagView) {
+            oldTagModel = ((TagView) ((ToggleButton) selectedToggle).getGraphic()).getTagModel();
+        }
+
+        if (oldTagModel == null) {
+            showAlert(Alert.AlertType.ERROR, "Lỗi", "Không thể lấy thông tin thẻ (TagModel) cũ.");
+            return;
+        }
+
+        // 2. HIỂN THỊ DIALOG
+        // (Sửa: Gỡ bỏ tham số 'currentType' không cần thiết)
+        Optional<TagModel> result = showEditTagDialog(oldTagModel);
+
+        if (result.isPresent()) {
+            TagModel newTagModel = result.get();
+            // newName: Chứa tên đã serialize (cho Genre/Tag) hoặc tên đơn giản (cho Studio/People)
+            String newName = newTagModel.serialize();
+            String oldDisplayName = oldTagModel.getDisplayName();
+            String newDisplayName = newTagModel.getDisplayName();
+
+            if (oldTagModel.serialize().equals(newName)) {
+                updateStatus("Không có thay đổi.", false);
+                return;
+            }
+
+            // 4. Chạy Task
+            String taskName = String.format(resources.getString("task.updateSpecific"),
+                    resources.getString(currentType.singularKey),
+                    oldDisplayName,
+                    newDisplayName);
+
+            runTask(taskName, () -> {
+                boolean success = false;
+                try {
+                    // (SỬA: Thêm case cho Studio/People)
+                    switch (currentType) {
+                        case STUDIO: studioService.updateStudio(idOrName, newName); success = true; break;
+                        case PEOPLE: peopleService.updatePeople(idOrName, newName); success = true; break;
+                        case GENRE:  genresService.updateGenre(idOrName, newName); success = true; break;
+                        case TAG:    tagService.updateTag(idOrName, newName); success = true; break;
+                    }
+                    if(success) {
+                        updateStatus(String.format(resources.getString("status.task.success"), taskName), false);
+                        Platform.runLater(this::loadCurrentTypeList);
+                    } else {
+                        updateStatus(String.format(resources.getString("error.task.unknown"), taskName), false);
+                    }
+                } catch (Exception e) {
+                    updateStatus(String.format(resources.getString("error.task.failed"), taskName, e.getMessage()), false);
+                }
+            });
+        } else {
+            updateStatus(resources.getString("status.cancelled"), false);
+        }
+    }
+
+
+    /**
+     * (SỬA) Hiển thị dialog để sửa TagModel (Simple hoặc JSON)
+     * (Sửa: Gỡ bỏ tham số MetadataType, logic giờ dựa hoàn toàn vào oldModel)
+     */
+    private Optional<TagModel> showEditTagDialog(TagModel oldModel) {
+        Dialog<TagModel> dialog = new Dialog<>();
+        dialog.setTitle(String.format(resources.getString("dialog.rename.title"), resources.getString(currentType.singularKey)));
+        dialog.setHeaderText(resources.getString("dialog.rename.header"));
+        if (statusBar != null && statusBar.getScene() != null) {
+            dialog.initOwner(statusBar.getScene().getWindow());
+        }
+
+        // Thêm nút OK và Cancel
+        ButtonType okButtonType = new ButtonType("OK", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(okButtonType, ButtonType.CANCEL);
+
+        // --- Tạo layout ---
+        VBox mainLayout = new VBox(15);
+        mainLayout.setPadding(new Insets(20));
+
+        CheckBox isJsonCheckbox = new CheckBox(resources.getString("dialog.rename.isJson"));
+
+        // Vùng nhập Tên Đơn Giản
+        VBox simpleBox = new VBox(5);
+        Label simpleLabel = new Label(resources.getString("dialog.rename.simpleName"));
+        TextField simpleField = new TextField();
+        simpleBox.getChildren().addAll(simpleLabel, simpleField);
+
+        // Vùng nhập Key-Value
+        GridPane jsonGrid = new GridPane();
+        jsonGrid.setHgap(10);
+        jsonGrid.setVgap(10);
+        Label keyLabel = new Label(resources.getString("dialog.rename.key"));
+        TextField keyField = new TextField();
+        Label valueLabel = new Label(resources.getString("dialog.rename.value"));
+        TextField valueField = new TextField();
+        jsonGrid.add(keyLabel, 0, 0);
+        jsonGrid.add(keyField, 1, 0);
+        jsonGrid.add(valueLabel, 0, 1);
+        jsonGrid.add(valueField, 1, 1);
+        GridPane.setHgrow(keyField, Priority.ALWAYS);
+        GridPane.setHgrow(valueField, Priority.ALWAYS);
+
+        mainLayout.getChildren().addAll(isJsonCheckbox, simpleBox, jsonGrid);
+        dialog.getDialogPane().setContent(mainLayout);
+
+        // --- Logic ẩn/hiện ---
+        isJsonCheckbox.selectedProperty().addListener((obs, oldVal, newVal) -> {
+            simpleBox.setVisible(!newVal);
+            simpleBox.setManaged(!newVal);
+            jsonGrid.setVisible(newVal);
+            jsonGrid.setManaged(newVal);
+        });
+
+        // --- (ĐÃ SỬA) Điền dữ liệu cũ (Logic đúng) ---
+        // Giờ đây nó không quan tâm đến 'type', chỉ quan tâm đến 'oldModel'
+        isJsonCheckbox.setVisible(true);
+        isJsonCheckbox.setManaged(true);
+
+        if (oldModel.isJson()) {
+            isJsonCheckbox.setSelected(true);
+            keyField.setText(oldModel.getKey());
+            valueField.setText(oldModel.getValue());
+            simpleBox.setVisible(false);
+            simpleBox.setManaged(false);
+        } else {
+            isJsonCheckbox.setSelected(false);
+            simpleField.setText(oldModel.getDisplayName());
+            jsonGrid.setVisible(false);
+            jsonGrid.setManaged(false);
+        }
+
+
+        // Ngăn nút OK bị disable
+        dialog.getDialogPane().lookupButton(okButtonType).setDisable(false);
+
+        // --- Chuyển đổi kết quả ---
+        dialog.setResultConverter(dialogButton -> {
+            if (dialogButton == okButtonType) {
+                if (isJsonCheckbox.isSelected()) {
+                    String key = keyField.getText();
+                    String value = valueField.getText();
+                    if (key != null && !key.isEmpty() && value != null && !value.isEmpty()) {
+                        return new TagModel(key, value);
+                    }
+                } else {
+                    String simple = simpleField.getText();
+                    if (simple != null && !simple.isEmpty()) {
+                        return new TagModel(simple);
+                    }
+                }
+                // Nếu không hợp lệ, trả về null (sẽ bị .isPresent() bắt)
+                return null;
+            }
+            return null;
+        });
+
+        return dialog.showAndWait();
+    }
+
 
     // --- Handlers cho Export JSON (Tab 2) ---
     @FXML
