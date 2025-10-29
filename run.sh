@@ -1,4 +1,5 @@
 #!/bin/sh
+#./mvnw clean package
 
 # Lấy đường dẫn tuyệt đối của thư mục chứa script này
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)

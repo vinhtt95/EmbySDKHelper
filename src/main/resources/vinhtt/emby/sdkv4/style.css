@@ -236,6 +236,52 @@
     -fx-background-color: #2a2a2a; /* Menu chuột phải tối hơn */
 }
 
+/* --- (THÊM MỚI) CSS CHO DIALOGPANE (POPUP) --- */
+.dialog-pane {
+    -fx-background-color: #1e1e1e; /* Nền tối hơn root một chút */
+    -fx-border-color: #3a3a3a;
+    -fx-border-width: 1px;
+}
+.dialog-pane .header-panel {
+    -fx-background-color: #2a2a2a; /* Nền header */
+    -fx-padding: 10px 15px;
+}
+.dialog-pane .header-panel .label { /* Label trong header (Tiêu đề) */
+    -fx-text-fill: #e0e0e0;
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+}
+.dialog-pane .content {
+    -fx-background-color: #1e1e1e; /* Nền content */
+    -fx-padding: 20px;
+}
+.dialog-pane .content .label { /* Label trong content */
+    -fx-text-fill: #cccccc;
+}
+
+/* Checkbox style */
+.check-box {
+    -fx-text-fill: #cccccc;
+}
+.check-box .box {
+    -fx-background-color: #333333;
+    -fx-border-color: #555555;
+    -fx-background-radius: 4px;
+    -fx-border-radius: 4px;
+}
+.check-box:selected .box .mark {
+    -fx-background-color: #007acc; /* Màu xanh khi check */
+}
+.check-box:focused .box {
+    -fx-border-color: #5C87B2; /* Viền xanh khi focus */
+}
+
+.dialog-pane .button-bar {
+    -fx-background-color: #1e1e1e;
+    -fx-padding: 10px 20px;
+}
+/* Các nút trong dialog-pane sẽ tự động nhận style .button */
+
 
 /* --- STATUS BAR STYLES --- */
 .status-bar {

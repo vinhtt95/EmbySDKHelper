@@ -86,7 +86,7 @@ public class MainController {
     @FXML private ScrollPane selectionScrollPane;
     @FXML private FlowPane selectionFlowPane;
     @FXML private Button btnRunClearSpecific;
-    @FXML private Button btnRunUpdateSpecific; // <-- THÊM NÚT UPDATE
+    @FXML private Button btnRunUpdateSpecific;
     private final ToggleGroup selectionToggleGroup = new ToggleGroup();
 
     // --- Vùng Công cụ Hàng loạt (Tab 2: Batch Tools) ---
@@ -216,6 +216,11 @@ public class MainController {
             alert.setContentText(content);
             if (statusBar != null && statusBar.getScene() != null) {
                 alert.initOwner(statusBar.getScene().getWindow());
+                // THÊM: Áp dụng CSS dark mode cho Alert
+                if (!statusBar.getScene().getStylesheets().isEmpty()) {
+                    String css = statusBar.getScene().getStylesheets().get(0);
+                    alert.getDialogPane().getStylesheets().add(css);
+                }
             }
             alert.showAndWait();
         });
@@ -516,7 +521,6 @@ public class MainController {
         }
 
         // 2. HIỂN THỊ DIALOG
-        // (Sửa: Gỡ bỏ tham số 'currentType' không cần thiết)
         Optional<TagModel> result = showEditTagDialog(oldTagModel);
 
         if (result.isPresent()) {
@@ -571,9 +575,17 @@ public class MainController {
         Dialog<TagModel> dialog = new Dialog<>();
         dialog.setTitle(String.format(resources.getString("dialog.rename.title"), resources.getString(currentType.singularKey)));
         dialog.setHeaderText(resources.getString("dialog.rename.header"));
+
+        // --- (THÊM MỚI) ÁP DỤNG CSS CHO DIALOG ---
         if (statusBar != null && statusBar.getScene() != null) {
             dialog.initOwner(statusBar.getScene().getWindow());
+            // Áp dụng CSS dark mode cho Dialog
+            if (!statusBar.getScene().getStylesheets().isEmpty()) {
+                String css = statusBar.getScene().getStylesheets().get(0);
+                dialog.getDialogPane().getStylesheets().add(css);
+            }
         }
+        // --- (KẾT THÚC THÊM) ---
 
         // Thêm nút OK và Cancel
         ButtonType okButtonType = new ButtonType("OK", ButtonBar.ButtonData.OK_DONE);
