@@ -43,7 +43,6 @@
                                 </TitledPane>
 
                                 <TitledPane fx:id="exportJsonPane" animated="false" text="%pane.exportJson.title">
-
                                     <content>
                                         <VBox spacing="8.0">
                                             <Label text="%label.exportJsonParentId" />
@@ -51,7 +50,6 @@
                                             <Button fx:id="btnRunExportJson" onAction="#btnRunExportJsonClick" text="%button.exportJson" />
                                         </VBox>
                                     </content>
-
                                 </TitledPane>
 
                                 <TitledPane fx:id="importJsonPane" animated="false" text="%pane.importJson.title">
@@ -66,14 +64,12 @@
                             </children>
                         </VBox>
                     </content>
-
                 </Tab>
 
                 <Tab text="%tab.metadata">
                     <content>
                         <VBox spacing="15.0">
                             <padding>
-
                                 <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
                             </padding>
                             <children>
@@ -81,92 +77,69 @@
                                 <HBox alignment="CENTER_LEFT" spacing="10.0">
                                     <children>
                                         <Label text="%label.selectType" style="-fx-font-weight: bold;"/>
-
                                         <ComboBox fx:id="typeComboBox" prefWidth="150.0" />
                                     </children>
-
                                 </HBox>
 
                                 <TitledPane fx:id="copyPane" animated="false" text="%pane.copy.title">
                                     <content>
-
                                         <VBox spacing="8.0">
                                             <Label text="%label.copyFromId" />
-
                                             <TextField fx:id="txtCopyFromItemID" promptText="%prompt.copyFromId" />
                                             <Label text="%label.copyToParent" />
-
                                             <TextField fx:id="txtCopyToParentID" promptText="%prompt.copyToParent" />
                                             <Button fx:id="btnRunCopy" onAction="#btnRunCopyClick" text="%button.executeCopy" />
                                         </VBox>
-
                                     </content>
                                 </TitledPane>
-                                <TitledPane fx:id="clearParentPane" animated="false" text="%pane.clearParent.title">
 
+                                <TitledPane fx:id="clearParentPane" animated="false" text="%pane.clearParent.title">
                                     <content>
                                         <VBox spacing="5.0">
-
                                             <Label fx:id="clearParentLabel" text="Loading..." />
                                             <TextField fx:id="txtClearByParentID" promptText="%prompt.clearParentId" />
-
                                             <Button fx:id="btnRunClearParent" onAction="#btnRunClearParentClick" text="Loading..." />
                                         </VBox>
                                     </content>
-
                                 </TitledPane>
 
-                                <TitledPane fx:id="clearSpecificPane" animated="false" text="%pane.clearSpecific.title">
+                                <TitledPane fx:id="clearSpecificPane" animated="false" text="%pane.clearSpecific.title" VBox.vgrow="ALWAYS">
                                     <content>
-
                                         <VBox spacing="8.0">
                                             <Label fx:id="clearSpecificLabel" text="Loading..." />
 
                                             <HBox spacing="10.0">
                                                 <TextField fx:id="searchField" promptText="%prompt.search" HBox.hgrow="ALWAYS"/>
-
                                                 <Button fx:id="btnReloadList" onAction="#btnReloadListClick" text="%button.reloadList"/>
                                             </HBox>
 
-                                            <ScrollPane fx:id="selectionScrollPane" fitToWidth="true" prefHeight="250.0" styleClass="scroll-pane">
+                                            <ScrollPane fx:id="selectionScrollPane" fitToWidth="true" styleClass="scroll-pane" VBox.vgrow="ALWAYS">
                                                 <content>
-
                                                     <FlowPane fx:id="selectionFlowPane" hgap="8.0" vgap="8.0">
                                                         <padding><Insets top="5.0" bottom="5.0" left="5.0" right="5.0"/></padding>
-
                                                     </FlowPane>
                                                 </content>
-
                                             </ScrollPane>
 
                                             <HBox alignment="CENTER_LEFT" spacing="10.0">
-
                                                 <children>
                                                     <Button fx:id="btnRunClearSpecific" onAction="#btnRunClearSpecificClick" text="Loading..." />
-
                                                     <Button fx:id="btnRunUpdateSpecific" onAction="#btnRunUpdateSpecificClick" text="Loading..." />
                                                 </children>
-
                                             </HBox>
-
                                         </VBox>
-
                                     </content>
                                 </TitledPane>
                             </children>
                         </VBox>
-
                     </content>
                 </Tab>
-
-
-
             </tabs>
         </TabPane>
+
         <HBox fx:id="statusBar" alignment="CENTER_LEFT" spacing="10.0" styleClass="status-bar">
             <padding>
                 <Insets bottom="5.0" left="10.0" right="10.0" top="5.0"/>
-
             </padding>
             <children>
                 <Label fx:id="statusLabel" text="%status.ready" HBox.hgrow="ALWAYS"/>
@@ -174,7 +147,6 @@
             </children>
             <VBox.margin>
                 <Insets top="5.0"/>
-
             </VBox.margin>
         </HBox>
     </children>

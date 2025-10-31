@@ -15,6 +15,7 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.time.OffsetDateTime;
+import java.util.ArrayList; // THÊM IMPORT
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -386,46 +387,52 @@ public class ItemService {
     }
 
     /**
-     * (HÀM MỚI) Tìm item con đầu tiên trong một ParentID khớp với OriginalTitle.
-     * LƯU Ý: Hàm này có thể chậm (N+1) nếu thư mục cha có RẤT NHIỀU item,
-     * vì phải getInfo cho từng item để kiểm tra OriginalTitle.
+     * Tìm item con khớp với OriginalTitle.
      *
-     * @param parentId ID thư mục cha để tìm kiếm bên trong.
+     * @param parentId ID thư mục cha. Nếu là NULL, tìm kiếm toàn server.
      * @param originalTitle OriginalTitle cần tìm.
-     * @return BaseItemDto (full info) của item tìm thấy, hoặc null.
+     * @return DANH SÁCH (List) các BaseItemDto (full info) của các item tìm thấy.
      */
-    public BaseItemDto findItemByOriginalTitle(String parentId, String originalTitle) {
-        if (originalTitle == null || originalTitle.isEmpty() || parentId == null || parentId.isEmpty()) {
-            return null;
+    public List<BaseItemDto> findItemsByOriginalTitle(String parentId, String originalTitle) {
+        if (originalTitle == null || originalTitle.isEmpty()) {
+            return new ArrayList<>(); // Trả về list rỗng
         }
 
-        // 1. Lấy danh sách item con (chỉ là stub, không có OriginalTitle)
-        List<BaseItemDto> childItems = getListItemByParentID(parentId, null, null, true);
-        if (childItems == null || childItems.isEmpty()) {
-            return null;
+        // 1. (CÁCH MỚI) Dùng API search (getItems) với 'searchTerm' = originalTitle,
+        //    giới hạn bởi 'parentId' (nếu parentId khác null), và yêu cầu trả về 'OriginalTitle'.
+        QueryResultBaseItemDto searchResult = null;
+        try {
+            searchResult = itemsServiceApi.getItems(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, true, originalTitle, null,null, "OriginalTitle", null, "Movie", null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
+        } catch (ApiException e) {
+            System.err.println("Lỗi API khi tìm kiếm item (OriginalTitle: " + originalTitle + "): " + e.getMessage());
+            return new ArrayList<>(); // Trả về list rỗng
         }
 
-        // 2. Lặp qua và get full info để kiểm tra
-        for (BaseItemDto stubItem : childItems) {
-            BaseItemDto fullItem = getInforItem(stubItem.getId());
-            if (fullItem != null && originalTitle.toUpperCase().equals(fullItem.getOriginalTitle().toUpperCase())) {
-                return fullItem; // Tìm thấy!
+        if (searchResult == null || searchResult.getItems() == null || searchResult.getItems().isEmpty()) {
+            // Không tìm thấy kết quả nào
+            return new ArrayList<>(); // Trả về list rỗng
+        }
+
+        List<BaseItemDto> matchingFullItems = new ArrayList<>();
+
+        // 2. Lặp qua các kết quả (thường là rất ít)
+        //    và tìm kết quả KHỚP CHÍNH XÁC.
+        for (BaseItemDto stubItem : searchResult.getItems()) {
+            // Do đã yêu cầu "fields=OriginalTitle", stubItem.getOriginalTitle() đã có giá trị.
+            if (stubItem.getOriginalTitle() != null && originalTitle.equalsIgnoreCase(stubItem.getOriginalTitle())) {
+                // ĐÃ TÌM THẤY!
+                // Lấy full info của item này và thêm vào danh sách trả về.
+                BaseItemDto fullItem = getInforItem(stubItem.getId());
+                if (fullItem != null) {
+                    matchingFullItems.add(fullItem);
+                    System.out.println("Tìm kiếm thành công: " + originalTitle + " -> " + stubItem.getName() + " (ID: " + stubItem.getId() + ")");
+                }
             }
         }
 
-        return null; // Không tìm thấy
+        return matchingFullItems; // Trả về danh sách tất cả các item khớp
     }
 
-    public QueryResultBaseItemDto searchBaseItemDto(String keywords, ItemsServiceApi itemsServiceApi, Integer startIndex, Integer limit, String sortOrder, String sortBy) {
-
-        QueryResultBaseItemDto result = null;
-        try {
-            result = itemsServiceApi.getItems(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, startIndex, limit, true, keywords, sortOrder, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, sortBy, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
-        } catch (ApiException e) {
-            // System.out.println(e.getMessage());
-        }
-        return result;
-    }
 
     /**
      * (HÀM MỚI) Cập nhật một item trên server (itemToUpdate)

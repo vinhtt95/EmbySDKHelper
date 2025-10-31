@@ -29,11 +29,17 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.FilenameFilter;
+// THÊM CÁC IMPORT MỚI ĐỂ QUÉT ĐỆ QUY
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.OffsetDateTime;
+import java.util.ArrayList; // Cần cho khởi tạo List
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.ResourceBundle;
+import java.util.stream.Collectors; // Cần cho stream
+import java.util.stream.Stream; // Cần cho stream
 import embyclient.JSON.OffsetDateTimeTypeAdapter;
 
 public class MainController {
@@ -778,15 +784,17 @@ public class MainController {
     // --- (HÀM MỚI) Handlers cho IMPORT JSON (Tab 2) ---
     @FXML
     private void btnRunImportJsonClick() {
-        // 1. Lấy ParentID (để giới hạn phạm vi tìm kiếm)
-        String parentId = txtImportJsonParentID.getText();
-        if (parentId == null || parentId.trim().isEmpty()) {
-            showAlert(Alert.AlertType.WARNING,
-                    resources.getString("alert.missingInfo.title"),
-                    resources.getString("alert.missingInfo.contentImport")); // Key mới
-            return;
-        }
-        final String finalParentId = parentId.trim();
+        // 1. (ĐÃ SỬA) Lấy ParentID (giờ là tùy chọn)
+        String parentIdText = txtImportJsonParentID.getText();
+        final String finalParentId = (parentIdText != null && !parentIdText.trim().isEmpty()) ? parentIdText.trim() : null;
+
+        // Bỏ kiểm tra ParentID bắt buộc
+        // if (parentId == null || parentId.trim().isEmpty()) {
+        //     showAlert(Alert.AlertType.WARNING,
+        //             resources.getString("alert.missingInfo.title"),
+        //             resources.getString("alert.missingInfo.contentImport")); // Key mới
+        //     return;
+        // }
 
         // 2. Mở DirectoryChooser để chọn thư mục chứa JSON
         DirectoryChooser directoryChooser = new DirectoryChooser();
@@ -804,31 +812,44 @@ public class MainController {
         });
     }
 
+    /**
+     * (HÀM ĐÃ NÂNG CẤP) Xử lý import JSON, quét đệ quy.
+     * @param parentId ID thư mục (TÙY CHỌN, có thể là null)
+     * @param directory Thư mục chứa file JSON
+     */
     private void importJsonTask(String parentId, File directory) {
         updateStatus(String.format(resources.getString("status.import.gettingList"), directory.getName()) + "...", true);
 
-        // 1. Lọc lấy các file .json
-        File[] jsonFiles = directory.listFiles(new FilenameFilter() {
-            @Override
-            public boolean accept(File dir, String name) {
-                return name.toLowerCase().endsWith(".json");
-            }
-        });
+        // 1. (ĐÃ NÂNG CẤP) Lấy danh sách file .json (đệ quy)
+        List<File> jsonFiles = new ArrayList<>(); // Khởi tạo list rỗng
+        try (Stream<Path> stream = Files.walk(directory.toPath())) {
+            jsonFiles = stream
+                    .filter(Files::isRegularFile) // Chỉ lấy file, bỏ qua thư mục
+                    .filter(path -> path.toString().toLowerCase().endsWith(".json")) // Lọc file .json
+                    .map(Path::toFile) // Chuyển Path thành File
+                    .collect(Collectors.toList()); // Thu thập thành List
+        } catch (IOException e) {
+            System.err.println("Lỗi nghiêm trọng khi quét thư mục đệ quy: " + directory.getAbsolutePath() + " - " + e.getMessage());
+            e.printStackTrace();
+            updateStatus("Lỗi quét thư mục: " + e.getMessage(), false);
+            return; // Dừng lại nếu không thể quét file
+        }
 
-        if (jsonFiles == null || jsonFiles.length == 0) {
+        if (jsonFiles.isEmpty()) { // Sử dụng .isEmpty()
             updateStatus(resources.getString("status.import.noFiles"), false);
             return;
         }
 
-        int total = jsonFiles.length;
+        int total = jsonFiles.size(); // Sử dụng .size()
         updateStatus(String.format(resources.getString("status.import.found"), total), true);
 
         int successCount = 0;
         int notFoundCount = 0;
+        int ambiguousCount = 0; // (MỚI) Đếm số lượng bị trùng
         int errorCount = 0;
 
         for (int i = 0; i < total; i++) {
-            File jsonFile = jsonFiles[i];
+            File jsonFile = jsonFiles.get(i); // (SỬA) Dùng .get(i) cho List
             String fileName = jsonFile.getName();
             updateStatus(String.format(resources.getString("status.import.progress"), (i + 1), total, fileName), true);
 
@@ -853,24 +874,56 @@ public class MainController {
                     continue;
                 }
 
-                // 4. Tìm item trên server
-                System.out.println("Đang tìm item có OriginalTitle: " + originalTitle + " trong ParentID: " + parentId);
-                BaseItemDto itemOnServer = itemService.findItemByOriginalTitle(parentId, originalTitle);
+                // 4. (ĐÃ SỬA) Tìm item trên server (parentId có thể là null)
+                if(parentId != null) {
+                    System.out.println(String.format(resources.getString("status.import.searching.parent"), parentId, originalTitle));
+                } else {
+                    System.out.println(String.format(resources.getString("status.import.searching.server"), originalTitle));
+                }
 
-                if (itemOnServer == null) {
+                // Gọi hàm service mới trả về List
+                List<BaseItemDto> itemsOnServer = itemService.findItemsByOriginalTitle(parentId, originalTitle);
+
+                // 5. (ĐÃ SỬA) Xử lý 3 trường hợp
+
+                if (itemsOnServer == null || itemsOnServer.isEmpty()) {
+                    // TRƯỜNG HỢP 1: KHÔNG TÌM THẤY
                     System.err.println(String.format(resources.getString("status.import.notFound"), originalTitle, fileName));
                     notFoundCount++;
                     continue;
-                }
 
-                // 5. Tìm thấy -> Update
-                System.out.println("Tìm thấy item: " + itemOnServer.getName() + " (ID: " + itemOnServer.getId() + "). Đang cập nhật...");
-                if (itemService.updateItemFromJson(itemOnServer, itemFromFile)) {
-                    System.out.println("Update thành công cho: " + originalTitle);
-                    successCount++;
+//                } else if (itemsOnServer.size() > 1) {
+//                    // TRƯỜNG HỢP 2: TÌM THẤY NHIỀU (BỊ "DOUBLE")
+//                    System.err.println(String.format(resources.getString("status.import.multipleFound"), itemsOnServer.size(), originalTitle, fileName));
+//                    ambiguousCount++;
+//                    continue;
+
                 } else {
-                    System.err.println("Update thất bại (API) cho: " + originalTitle);
-                    errorCount++;
+                    for (BaseItemDto eachItem : itemsOnServer) {
+                        if(eachItem.getId().equals(itemFromFile.getId())) {
+                            continue;
+                        }
+
+                        System.out.println("Tìm thấy item: " + eachItem.getName() + " (ID: " + eachItem.getId() + "). Đang cập nhật...");
+                        if (itemService.updateItemFromJson(eachItem, itemFromFile)) {
+                            System.out.println("Update thành công cho: " + originalTitle);
+                            successCount++;
+                        } else {
+                            System.err.println("Update thất bại (API) cho: " + originalTitle);
+                            errorCount++;
+                        }
+                    }
+                    // TRƯỜNG HỢP 3: TÌM THẤY ĐÚNG 1 ITEM
+                    /*BaseItemDto itemOnServer = itemsOnServer.get(0); // Lấy item duy nhất
+
+                    System.out.println("Tìm thấy item: " + itemOnServer.getName() + " (ID: " + itemOnServer.getId() + "). Đang cập nhật...");
+                    if (itemService.updateItemFromJson(itemOnServer, itemFromFile)) {
+                        System.out.println("Update thành công cho: " + originalTitle);
+                        successCount++;
+                    } else {
+                        System.err.println("Update thất bại (API) cho: " + originalTitle);
+                        errorCount++;
+                    }*/
                 }
 
             } catch (JsonSyntaxException jsonEx) {
@@ -883,8 +936,8 @@ public class MainController {
             }
         }
 
-        // 6. Báo cáo kết quả
-        String finalMessage = String.format(resources.getString("status.import.done"), successCount, notFoundCount, errorCount);
+        // 6. (ĐÃ SỬA) Báo cáo kết quả
+        String finalMessage = String.format(resources.getString("status.import.done"), successCount, notFoundCount, ambiguousCount, errorCount);
         updateStatus(finalMessage, false);
     }
 
