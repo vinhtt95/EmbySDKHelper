@@ -416,6 +416,17 @@ public class ItemService {
         return null; // Không tìm thấy
     }
 
+    public QueryResultBaseItemDto searchBaseItemDto(String keywords, ItemsServiceApi itemsServiceApi, Integer startIndex, Integer limit, String sortOrder, String sortBy) {
+
+        QueryResultBaseItemDto result = null;
+        try {
+            result = itemsServiceApi.getItems(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, startIndex, limit, true, keywords, sortOrder, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, sortBy, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
+        } catch (ApiException e) {
+            // System.out.println(e.getMessage());
+        }
+        return result;
+    }
+
     /**
      * (HÀM MỚI) Cập nhật một item trên server (itemToUpdate)
      * bằng metadata từ item trong file (itemFromFile).
