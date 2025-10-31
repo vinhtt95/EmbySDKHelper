@@ -384,4 +384,86 @@ public class ItemService {
             }
         }
     }
+
+    /**
+     * (HÀM MỚI) Tìm item con đầu tiên trong một ParentID khớp với OriginalTitle.
+     * LƯU Ý: Hàm này có thể chậm (N+1) nếu thư mục cha có RẤT NHIỀU item,
+     * vì phải getInfo cho từng item để kiểm tra OriginalTitle.
+     *
+     * @param parentId ID thư mục cha để tìm kiếm bên trong.
+     * @param originalTitle OriginalTitle cần tìm.
+     * @return BaseItemDto (full info) của item tìm thấy, hoặc null.
+     */
+    public BaseItemDto findItemByOriginalTitle(String parentId, String originalTitle) {
+        if (originalTitle == null || originalTitle.isEmpty() || parentId == null || parentId.isEmpty()) {
+            return null;
+        }
+
+        // 1. Lấy danh sách item con (chỉ là stub, không có OriginalTitle)
+        List<BaseItemDto> childItems = getListItemByParentID(parentId, null, null, true);
+        if (childItems == null || childItems.isEmpty()) {
+            return null;
+        }
+
+        // 2. Lặp qua và get full info để kiểm tra
+        for (BaseItemDto stubItem : childItems) {
+            BaseItemDto fullItem = getInforItem(stubItem.getId());
+            if (fullItem != null && originalTitle.toUpperCase().equals(fullItem.getOriginalTitle().toUpperCase())) {
+                return fullItem; // Tìm thấy!
+            }
+        }
+
+        return null; // Không tìm thấy
+    }
+
+    /**
+     * (HÀM MỚI) Cập nhật một item trên server (itemToUpdate)
+     * bằng metadata từ item trong file (itemFromFile).
+     * Chỉ copy các trường metadata, giữ nguyên ID và các thông tin hệ thống.
+     *
+     * @param itemOnServer Item gốc trên server (sẽ bị ghi đè metadata).
+     * @param itemFromFile Item deserialize từ JSON (chỉ đọc metadata).
+     * @return true nếu update API thành công.
+     */
+    public boolean updateItemFromJson(BaseItemDto itemOnServer, BaseItemDto itemFromFile) {
+        if (itemOnServer == null || itemFromFile == null) {
+            return false;
+        }
+
+        // Lấy ID gốc của server
+        String serverId = itemOnServer.getId();
+
+        // --- BẮT ĐẦU SAO CHÉP METADATA ---
+        itemOnServer.setName(itemFromFile.getName());
+        itemOnServer.setOriginalTitle(itemFromFile.getOriginalTitle());
+        itemOnServer.setPremiereDate(itemFromFile.getPremiereDate());
+        itemOnServer.setProductionYear(itemFromFile.getProductionYear());
+        itemOnServer.setSortName(itemFromFile.getSortName());
+        itemOnServer.setOverview(itemFromFile.getOverview());
+
+        // Xóa list cũ, thêm list mới (Đây là cách copy chuẩn)
+        itemOnServer.getStudios().clear();
+        if (itemFromFile.getStudios() != null) {
+            itemOnServer.getStudios().addAll(itemFromFile.getStudios());
+        }
+
+        itemOnServer.getGenreItems().clear();
+        if (itemFromFile.getGenreItems() != null) {
+            itemOnServer.getGenreItems().addAll(itemFromFile.getGenreItems());
+        }
+
+        itemOnServer.getPeople().clear();
+        if (itemFromFile.getPeople() != null) {
+            itemOnServer.getPeople().addAll(itemFromFile.getPeople());
+        }
+
+        itemOnServer.getTagItems().clear();
+        if (itemFromFile.getTagItems() != null) {
+            itemOnServer.getTagItems().addAll(itemFromFile.getTagItems());
+        }
+        // --- KẾT THÚC SAO CHÉP ---
+
+        // Gọi API update bằng ID gốc của server
+        return updateInforItem(serverId, itemOnServer);
+    }
 }

@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import embyclient.model.BaseItemDto;
 import embyclient.model.UserLibraryTagItem;
+import com.google.gson.JsonSyntaxException;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -24,8 +25,10 @@ import vinhtt.emby.sdkv4.ui.TagModel;
 import vinhtt.emby.sdkv4.ui.TagView;
 
 import java.io.File;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.FilenameFilter;
 import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.List;
@@ -97,6 +100,11 @@ public class MainController {
     @FXML private TitledPane batchProcessPane;
     @FXML private TextField txtBatchProcessParentID;
     @FXML private Button btnRunBatchProcess;
+
+    // --- (THÊM MỚI) Vùng Công cụ Nhập (Tab 2) ---
+    @FXML private TitledPane importJsonPane;
+    @FXML private TextField txtImportJsonParentID;
+    @FXML private Button btnRunImportJson;
 
 
     // --- ResourceBundle ---
@@ -765,6 +773,119 @@ public class MainController {
         runTask(taskName, () -> {
             batchProcessTask(finalParentId);
         });
+    }
+
+    // --- (HÀM MỚI) Handlers cho IMPORT JSON (Tab 2) ---
+    @FXML
+    private void btnRunImportJsonClick() {
+        // 1. Lấy ParentID (để giới hạn phạm vi tìm kiếm)
+        String parentId = txtImportJsonParentID.getText();
+        if (parentId == null || parentId.trim().isEmpty()) {
+            showAlert(Alert.AlertType.WARNING,
+                    resources.getString("alert.missingInfo.title"),
+                    resources.getString("alert.missingInfo.contentImport")); // Key mới
+            return;
+        }
+        final String finalParentId = parentId.trim();
+
+        // 2. Mở DirectoryChooser để chọn thư mục chứa JSON
+        DirectoryChooser directoryChooser = new DirectoryChooser();
+        directoryChooser.setTitle(resources.getString("chooser.importJson.title")); // Key mới
+        File selectedDirectory = directoryChooser.showDialog(btnRunImportJson.getScene().getWindow());
+        if (selectedDirectory == null) {
+            updateStatus(resources.getString("status.cancelled"), false);
+            return;
+        }
+
+        // 3. Chạy Task
+        String taskName = String.format(resources.getString("task.importJson"), selectedDirectory.getName()); // Key mới
+        runTask(taskName, () -> {
+            importJsonTask(finalParentId, selectedDirectory);
+        });
+    }
+
+    private void importJsonTask(String parentId, File directory) {
+        updateStatus(String.format(resources.getString("status.import.gettingList"), directory.getName()) + "...", true);
+
+        // 1. Lọc lấy các file .json
+        File[] jsonFiles = directory.listFiles(new FilenameFilter() {
+            @Override
+            public boolean accept(File dir, String name) {
+                return name.toLowerCase().endsWith(".json");
+            }
+        });
+
+        if (jsonFiles == null || jsonFiles.length == 0) {
+            updateStatus(resources.getString("status.import.noFiles"), false);
+            return;
+        }
+
+        int total = jsonFiles.length;
+        updateStatus(String.format(resources.getString("status.import.found"), total), true);
+
+        int successCount = 0;
+        int notFoundCount = 0;
+        int errorCount = 0;
+
+        for (int i = 0; i < total; i++) {
+            File jsonFile = jsonFiles[i];
+            String fileName = jsonFile.getName();
+            updateStatus(String.format(resources.getString("status.import.progress"), (i + 1), total, fileName), true);
+
+            try {
+                // 2. Đọc và Parse JSON
+                BaseItemDto itemFromFile;
+                try (FileReader reader = new FileReader(jsonFile)) {
+                    itemFromFile = gson.fromJson(reader, BaseItemDto.class);
+                }
+
+                if (itemFromFile == null) {
+                    System.err.println("Lỗi parse file: " + fileName + " (nội dung rỗng?)");
+                    errorCount++;
+                    continue;
+                }
+
+                // 3. Lấy OriginalTitle
+                String originalTitle = itemFromFile.getOriginalTitle();
+                if (originalTitle == null || originalTitle.isEmpty()) {
+                    System.err.println("Bỏ qua file (không có OriginalTitle): " + fileName);
+                    errorCount++;
+                    continue;
+                }
+
+                // 4. Tìm item trên server
+                System.out.println("Đang tìm item có OriginalTitle: " + originalTitle + " trong ParentID: " + parentId);
+                BaseItemDto itemOnServer = itemService.findItemByOriginalTitle(parentId, originalTitle);
+
+                if (itemOnServer == null) {
+                    System.err.println(String.format(resources.getString("status.import.notFound"), originalTitle, fileName));
+                    notFoundCount++;
+                    continue;
+                }
+
+                // 5. Tìm thấy -> Update
+                System.out.println("Tìm thấy item: " + itemOnServer.getName() + " (ID: " + itemOnServer.getId() + "). Đang cập nhật...");
+                if (itemService.updateItemFromJson(itemOnServer, itemFromFile)) {
+                    System.out.println("Update thành công cho: " + originalTitle);
+                    successCount++;
+                } else {
+                    System.err.println("Update thất bại (API) cho: " + originalTitle);
+                    errorCount++;
+                }
+
+            } catch (JsonSyntaxException jsonEx) {
+                System.err.println("Lỗi cú pháp JSON: " + fileName + " - " + jsonEx.getMessage());
+                errorCount++;
+            } catch (Exception e) {
+                System.err.println("Lỗi nghiêm trọng khi xử lý file: " + fileName + " - " + e.getMessage());
+                e.printStackTrace();
+                errorCount++;
+            }
+        }
+
+        // 6. Báo cáo kết quả
+        String finalMessage = String.format(resources.getString("status.import.done"), successCount, notFoundCount, errorCount);
+        updateStatus(finalMessage, false);
     }
 
     private void batchProcessTask(String parentId) {
